@@ -1,0 +1,44 @@
+:root {
+    --nx: #6a8cff;
+    --ink: #09101f;
+    --paper: #eef3ff;
+}
+div#header {
+    background: linear-gradient(110deg, #070b14, #142246);
+    color: var(--paper);
+    padding: 18px 28px;
+}
+#site-name a {
+    font: 700 24px Arial, sans-serif;
+    letter-spacing: -1px;
+    color: #fff;
+}
+#site-name span {
+    font: 11px monospace;
+    letter-spacing: 2px;
+    color: #9eb8ff;
+    margin-left: 10px;
+}
+body {
+    background: #f4f7fc;
+}
+#content {
+    padding: 28px;
+}
+body .module h2, body .module caption {
+    background: #142246;
+    color: #fff;
+}
+body .button, body .submit-row input, body .object-tools a {
+    background: #516fe0;
+    border-radius: 7px;
+}
+.object-tools a {
+    padding: 9px 12px;
+}
+.results tr:hover {
+    background: #eef2ff;
+}
+.field-image_preview_large img {
+    box-shadow: 0 10px 26px #10264a33;
+}

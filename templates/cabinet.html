@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load store_extras %}
+{% block title %}{{ copy.account }} | NEXORA{% endblock %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block content %}
+<section class="cabinet-section" aria-labelledby="cabinet-title">
+    <p class="eyebrow">{{ copy.account_eyebrow }}</p>
+    <h1 id="cabinet-title">{{ user.get_full_name|default:user.username }}</h1>
+
+    <div class="cabinet-grid">
+        <section class="cabinet-panel" aria-labelledby="orders-title">
+            <h2 id="orders-title">{{ copy.orders_title }}</h2>
+            <div class="cabinet-list">
+                {% for order in orders %}
+                    <article>
+                        <a href="{% url 'order_success' order.reference %}"><strong>{{ order.reference }}</strong></a><br>
+                        <span>{{ order.created_at|date:'Y-m-d' }} · {{ order.total }} {{ copy.currency_symbol }} · {{ order.status|localized_status }}</span>
+                    </article>
+                {% empty %}<p>{{ copy.no_results }}</p>{% endfor %}
+            </div>
+        </section>
+
+        <section class="cabinet-panel" aria-labelledby="addresses-title">
+            <h2 id="addresses-title">{{ copy.addresses_title }}</h2>
+            <div class="cabinet-list">
+                {% for address in addresses %}
+                    <article>
+                        <strong>{{ address.title }}</strong>
+                        <p>{{ address.full_name }} · {{ address.phone }}<br>{{ address.address_line }}, {{ address.city }} {{ address.postal_code }}</p>
+                        <form action="{% url 'delete_address' address.id %}" method="post">{% csrf_token %}
+                            <button class="text-button" type="submit">{{ copy.remove }}</button>
+                        </form>
+                    </article>
+                {% empty %}<p>{{ copy.no_addresses }}</p>{% endfor %}
+            </div>
+            <form class="auth-form" action="{% url 'add_address' %}" method="post" novalidate>
+                {% csrf_token %}
+                {% if address_form.non_field_errors %}<div class="error-summary" role="alert">{{ address_form.non_field_errors }}</div>{% endif %}
+                {% for field in address_form %}
+                    <div class="form-field">
+                        {{ field.label_tag }}{{ field }}
+                        {% if field.help_text %}<small id="help_{{ field.name }}" class="help-text">{{ field.help_text }}</small>{% endif %}
+                        {% if field.errors %}<div id="error_{{ field.name }}" class="field-error" role="alert">{{ field.errors }}</div>{% endif %}
+                    </div>
+                {% endfor %}
+                <button class="button" type="submit">{{ copy.save_address }}</button>
+            </form>
+        </section>
+
+        <section class="cabinet-panel" aria-labelledby="wishlist-title">
+            <h2 id="wishlist-title">{{ copy.wishlist_title }}</h2>
+            <div class="cabinet-list">
+                {% for item in wishlist %}
+                    <article class="summary-item">
+                        <img src="{{ item.product.display_image }}" alt="{{ item.product.localized_name }}" width="112" height="112" loading="lazy">
+                        <div><a href="{{ item.product.get_absolute_url }}"><strong>{{ item.product.localized_name }}</strong></a><br>{{ item.product.price }} {{ copy.currency_symbol }}</div>
+                        <form action="{% url 'toggle_wishlist' item.product.id %}" method="post">{% csrf_token %}
+                            <input type="hidden" name="next" value="{% url 'cabinet' %}">
+                            <button class="text-button" type="submit">{{ copy.remove }}</button>
+                        </form>
+                    </article>
+                {% empty %}<p>{{ copy.no_results }}</p>{% endfor %}
+            </div>
+        </section>
+
+        <section class="cabinet-panel" aria-labelledby="service-title">
+            <h2 id="service-title">{{ copy.service_title }}</h2>
+            <div class="cabinet-list">
+                {% for item in returns %}<article><strong>{{ copy.return_label }} #{{ item.id }}</strong> · {{ item.status|localized_status }}<p>{{ item.description }}</p></article>{% endfor %}
+                {% for claim in warranty_claims %}<article><strong>{{ copy.warranty_claim_label }} #{{ claim.id }}</strong> · {{ claim.status|localized_status }}<p>{{ claim.description }}</p></article>{% endfor %}
+                {% if not returns and not warranty_claims %}<p>{{ copy.no_service_requests }}</p>{% endif %}
+            </div>
+        </section>
+    </div>
+</section>
+{% endblock %}

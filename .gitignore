@@ -1,0 +1,26 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.env
+.env.*
+!.env.example
+db.sqlite3
+media/
+*.zip
+*.log
+.codex-write-probe
+staticfiles/
+media/.wikidata-staging/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+# Local database and uploaded media are never committed. Production uses PostgreSQL
+# and an external media store, while local demo assets remain on the developer machine.
