@@ -1,0 +1,52 @@
+services:
+  - type: web
+    runtime: docker
+    name: nexora-django
+    plan: free
+    branch: main
+    autoDeployTrigger: commit
+    healthCheckPath: /en/
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        value: nexora-django.onrender.com
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        value: https://nexora-django.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nexora-db
+          property: connectionString
+      - key: DJANGO_CACHE_URL
+        fromService:
+          type: keyvalue
+          name: nexora-cache
+          property: connectionString
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_ENABLED
+        value: "True"
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash-lite
+
+  - type: keyvalue
+    name: nexora-cache
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  - name: nexora-db
+    plan: free
+    databaseName: nexora
+    user: nexora
