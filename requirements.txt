@@ -1,0 +1,7 @@
+Django>=5.2,<6
+Pillow>=11.0,<13
+requests>=2.32,<3
+redis>=5.2,<7
+whitenoise>=6.9,<7
+psycopg[binary]>=3.2,<4
+gunicorn>=23,<24

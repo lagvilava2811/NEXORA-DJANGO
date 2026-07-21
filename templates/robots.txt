@@ -1,0 +1,34 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /bag/
+Disallow: /checkout/
+Disallow: /order/
+Disallow: /cabinet/
+Disallow: /coupon/
+Disallow: /cart/
+Disallow: /compare/
+Disallow: /login/
+Disallow: /signup/
+Disallow: /en/admin/
+Disallow: /en/bag/
+Disallow: /en/checkout/
+Disallow: /en/order/
+Disallow: /en/cabinet/
+Disallow: /en/coupon/
+Disallow: /en/cart/
+Disallow: /en/compare/
+Disallow: /en/login/
+Disallow: /en/signup/
+Disallow: /ru/admin/
+Disallow: /ru/bag/
+Disallow: /ru/checkout/
+Disallow: /ru/order/
+Disallow: /ru/cabinet/
+Disallow: /ru/coupon/
+Disallow: /ru/cart/
+Disallow: /ru/compare/
+Disallow: /ru/login/
+Disallow: /ru/signup/
+
+Sitemap: {{ site_url }}/sitemap.xml

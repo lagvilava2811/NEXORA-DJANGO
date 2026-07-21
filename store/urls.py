@@ -1,0 +1,38 @@
+from django.urls import path
+from django.contrib.auth import views as auth_views
+from . import views
+
+urlpatterns = [
+    path('product/<str:slug>/rating/', views.rate_product, name='rate_product'),
+    path('verify-email/', views.verify_email_view, name='verify_email'),
+    path('verify-email/resend/', views.resend_verification_view, name='resend_verification'),
+    path("", views.home, name="home"),
+    path("shop/", views.shop, name="shop"),
+    path("product/<str:slug>/", views.product, name="product"),
+    path("bag/", views.bag, name="bag"),
+    path("bag/add/<int:id>/", views.add, name="add"),
+    path("bag/update/<int:id>/", views.update, name="update"),
+    path("checkout/", views.checkout, name="checkout"),
+    path("order/<str:reference>/", views.order_success, name="order_success"),
+    path("guide/", views.guide, name="guide"),
+    path("login/", views.login_view, name="login"),
+    path("password-reset/", views.password_reset_request, name="password_reset"),
+    path("password-reset/done/", auth_views.PasswordResetDoneView.as_view(template_name="registration/password_reset_done.html"), name="password_reset_done"),
+    path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(template_name="registration/password_reset_confirm.html"), name="password_reset_confirm"),
+    path("reset/done/", auth_views.PasswordResetCompleteView.as_view(template_name="registration/password_reset_complete.html"), name="password_reset_complete"),
+    path("signup/", views.signup_view, name="signup"),
+    path("logout/", views.logout_view, name="logout"),
+    path("cabinet/", views.cabinet_view, name="cabinet"),
+    path("cabinet/address/add/", views.add_address_view, name="add_address"),
+    path("cabinet/address/delete/<int:id>/", views.delete_address_view, name="delete_address"),
+    path("coupon/apply/", views.apply_coupon_view, name="apply_coupon"),
+    path("cart/drawer/", views.cart_drawer_ajax, name="cart_drawer_ajax"),
+    path("cart/add/<int:id>/", views.cart_add_ajax, name="cart_add_ajax"),
+    path("cart/update/<int:id>/", views.cart_update_ajax, name="cart_update_ajax"),
+    path("wishlist/toggle/<int:id>/", views.toggle_wishlist, name="toggle_wishlist"),
+    path("compare/", views.compare_view, name="compare"),
+    path("compare/toggle/<int:id>/", views.toggle_compare, name="toggle_compare"),
+    path("product/<str:slug>/review/", views.add_review, name="add_review"),
+    path("robots.txt", views.robots_txt, name="robots_txt"),
+    path("sitemap.xml", views.sitemap_xml, name="sitemap_xml"),
+]

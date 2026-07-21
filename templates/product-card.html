@@ -1,0 +1,15 @@
+{% load humanize %}
+<article class="product-card tilt-card" id="product-card-{{ product.id }}" aria-labelledby="product-title-{{ product.id }}">
+    <a href="{{ product.get_absolute_url }}" aria-label="{{ product.localized_name }}">
+        <div class="product-image">
+            {% if product.discount_percent %}<span class="product-tag">−{{ product.discount_percent }}%</span>{% elif product.is_new %}<span class="product-tag">{{ copy.new_badge }}</span>{% endif %}
+            <span class="media-verified">{{ copy.verified_media }}</span>
+            <img src="{{ product.display_image }}" alt="{{ product.localized_name }}" loading="lazy" decoding="async" width="700" height="600">
+        </div>
+    </a>
+    <div class="product-info">
+        <div><p class='category-name'>{{ product.brand }} / {{ product.category.localized_name }}</p><h3 id='product-title-{{ product.id }}'><a href='{{ product.get_absolute_url }}'>{{ product.localized_name }}</a></h3>{% if product.rating_count %}<small aria-label='{{ product.rating }} rating, {{ product.rating_count }} {{ copy.ratings }}'>★ {{ product.rating }} · {{ product.rating_count }} {{ copy.ratings }}</small>{% endif %}</div>
+        <div class="product-pricing"><p class="product-price">{{ product.price|floatformat:0|intcomma }} {{ copy.currency_symbol }}</p>{% if product.compare_at_price %}<p class="product-old-price">{{ product.compare_at_price|floatformat:0|intcomma }} {{ copy.currency_symbol }}</p>{% endif %}</div>
+    </div>
+    {% if product.in_stock %}<form action="{% url 'add' product.id %}" method="post" data-add-to-bag data-ajax-url="{% url 'cart_add_ajax' product.id %}">{% csrf_token %}<input type="hidden" name="quantity" value="1"><input type="hidden" name="next" value="{% url 'bag' %}"><button type="submit">{{ copy.add_to_bag }}</button></form>{% else %}<div class="out-of-stock-label">{{ copy.out_of_stock }}</div>{% endif %}
+</article>

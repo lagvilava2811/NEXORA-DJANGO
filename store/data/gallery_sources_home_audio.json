@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "purpose": "Candidate exact-model, locally-downloadable gallery sources. Only entries with exact_model_match=true should be imported.",
+  "products": [
+    {"exact_model":"Google Nest Hub 2nd Gen","exact_model_match":false,"sources":[],"note":"The available Commons files identify only Google Nest Hub, not the second-generation model; do not import them as an exact 2nd Gen match."},
+    {"exact_model":"Amazon Echo Show 8","exact_model_match":false,"sources":[],"note":"No exact-model, multi-view freely licensed source verified in this research pass."},
+    {"exact_model":"Philips Hue Bridge","exact_model_match":true,"sources":[
+      {"view_label":"front / product on surface","source_url":"https://commons.wikimedia.org/wiki/File:Philips_Hue_bridge_Gen_2.jpg","image_url":"https://commons.wikimedia.org/wiki/Special:FilePath/Philips_Hue_bridge_Gen_2.jpg","license":"CC0 1.0","author":"Harborsparrow"},
+      {"view_label":"front / product portrait","source_url":"https://commons.wikimedia.org/wiki/File:Philips_Hue_Bridge_-_June_2018_(1986).jpg","image_url":"https://commons.wikimedia.org/wiki/Special:FilePath/Philips_Hue_Bridge_-_June_2018_(1986).jpg","license":"CC BY-SA 4.0","author":"Gregory Varnum"},
+      {"view_label":"bottom / certification detail","source_url":"https://commons.wikimedia.org/wiki/File:Philips_Hue_Bridge_%E2%80%94_bottom_%E2%80%94_2021.jpg","image_url":"https://commons.wikimedia.org/wiki/Special:FilePath/Philips_Hue_Bridge_%E2%80%94_bottom_%E2%80%94_2021.jpg","license":"Public domain (PD-ineligible)","author":"Philips; scan by Mateus2019"}
+    ]},
+    {"exact_model":"Ring Video Doorbell 4","exact_model_match":false,"sources":[],"note":"No exact-model, multi-view freely licensed source verified in this research pass."},
+    {"exact_model":"Apple HomePod mini","exact_model_match":true,"sources":[{"view_label":"front / studio product portrait","source_url":"https://commons.wikimedia.org/wiki/File:Apple_HomePod_mini.jpg","image_url":"https://commons.wikimedia.org/wiki/Special:FilePath/Apple_HomePod_mini.jpg","license":"CC BY-SA 3.0 DE","author":"Arne Museler"}]},
+    {"exact_model":"Ecobee Smart Thermostat Premium","exact_model_match":false,"sources":[],"note":"No exact-model, multi-view freely licensed source verified in this research pass."},
+    {"exact_model":"Apple AirPods Pro 2","exact_model_match":true,"sources":[{"view_label":"earbuds and charging case / three-quarter","source_url":"https://commons.wikimedia.org/wiki/File:AirPods_Pro_(2nd_generation).jpg","image_url":"https://commons.wikimedia.org/wiki/Special:FilePath/AirPods_Pro_(2nd_generation).jpg","license":"CC BY-SA 4.0","author":"Hajoon0102"}]},
+    {"exact_model":"Samsung Galaxy Buds2 Pro","exact_model_match":true,"sources":[
+      {"view_label":"graphite top view","source_url":"https://commons.wikimedia.org/wiki/File:Samsung_Galaxy_Buds2_Pro_(Graphite).jpg","image_url":"https://commons.wikimedia.org/wiki/Special:FilePath/Samsung_Galaxy_Buds2_Pro_(Graphite).jpg","license":"CC BY-SA 4.0","author":"Gannu03"},
+      {"view_label":"graphite alternative top angle","source_url":"https://commons.wikimedia.org/wiki/File:Samsung_Galaxy_Buds2_Pro_(Graphite)_(2).jpg","image_url":"https://commons.wikimedia.org/wiki/Special:FilePath/Samsung_Galaxy_Buds2_Pro_(Graphite)_(2).jpg","license":"CC BY-SA 4.0","author":"Gannu03"},
+      {"view_label":"graphite alternative detail","source_url":"https://commons.wikimedia.org/wiki/File:Samsung_Galaxy_Buds2_Pro_(Graphite)_(3).jpg","image_url":"https://commons.wikimedia.org/wiki/Special:FilePath/Samsung_Galaxy_Buds2_Pro_(Graphite)_(3).jpg","license":"CC BY-SA 4.0","author":"Gannu03"}
+    ]}
+  ]
+}
