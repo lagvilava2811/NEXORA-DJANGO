@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.core.checks import Error, Tags, register
 
@@ -7,7 +9,11 @@ INSECURE_EMAIL_BACKENDS = ('console', 'locmem', 'dummy', 'filebased')
 
 @register(Tags.security)
 def production_email_configuration(app_configs, **kwargs):
-    if settings.DEBUG or getattr(settings, 'TESTING', False):
+    if (
+        settings.DEBUG
+        or getattr(settings, 'TESTING', False)
+        or os.getenv('ALLOW_INSECURE_EMAIL_FOR_DEMO', '').lower() in {'1', 'true', 'yes'}
+    ):
         return []
 
     errors = []
