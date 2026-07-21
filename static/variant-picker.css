@@ -1,4 +1,0 @@
-.variant-chip-btn{color:var(--text);transition:border-color .18s ease,background .18s ease,color .18s ease,transform .18s ease}
-.variant-chip-btn:hover:not(:disabled){border-color:var(--accent);transform:translateY(-1px)}
-.variant-chip-btn.is-selected,.variant-chip-btn[aria-pressed=true]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink);box-shadow:0 0 0 3px color-mix(in oklch,var(--accent) 20%,transparent)}
-.variant-chip-btn:disabled{opacity:.45;cursor:not-allowed;text-decoration:line-through}
