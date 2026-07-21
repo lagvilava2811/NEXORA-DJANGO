@@ -11,7 +11,7 @@ COPY requirements.txt ./
 RUN python -m pip install --upgrade pip && python -m pip install -r requirements.txt
 
 COPY . .
-RUN DJANGO_DEBUG=True python manage.py collectstatic --noinput && \
+RUN DJANGO_DEBUG=True DJANGO_SECRET_KEY=build-only-placeholder python manage.py collectstatic --noinput && \
     chown -R nexora:nexora /app
 
 USER nexora
