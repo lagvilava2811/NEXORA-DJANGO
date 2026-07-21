@@ -24,6 +24,8 @@ services:
           type: keyvalue
           name: nexora-cache
           property: connectionString
+      - key: DJANGO_EMAIL_BACKEND
+        value: django.core.mail.backends.console.EmailBackend
       - key: EMAIL_HOST
         sync: false
       - key: EMAIL_HOST_USER
