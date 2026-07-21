@@ -5,30 +5,18 @@
 <section class="auth-section" aria-labelledby="signup-title">
     <p class="eyebrow">{{ copy.account_eyebrow }}</p>
     <h1 id="signup-title">{{ copy.create_account }}</h1>
-    <div class="signup-stage">
-        <aside class="signup-animation" aria-hidden="true">
-            <div class="signup-sky"></div>
-            <div class="signup-case"><i></i></div>
-            <div class="signup-person">
-                <i class="signup-head"></i><i class="signup-hair"></i><i class="signup-jacket"></i>
-                <i class="signup-arm signup-arm-left"></i><i class="signup-arm signup-arm-right"></i>
-                <i class="signup-leg signup-leg-left"></i><i class="signup-leg signup-leg-right"></i>
-            </div>
-            <p class="signup-animation-label">CREATE YOUR NEXORA ACCOUNT</p>
-        </aside>
-        <div class="auth-card signup-auth-card">
-            <form class="auth-form" method="post" novalidate>
-                {% csrf_token %}
-                {% if form.non_field_errors %}<div class="error-summary" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-                {% for field in form %}<div class="form-field">
-                    {{ field.label_tag }}{% if field.field.widget.input_type == 'password' %}<div class="password-field-control">{{ field }}<button class="password-toggle" type="button" data-password-toggle aria-controls="{{ field.id_for_label }}" aria-pressed="false" aria-label="Show password"><svg aria-hidden="true"><use href="#icon-eye"></use></svg></button></div>{% else %}{{ field }}{% endif %}
-                    {% if field.help_text %}<small id="help_{{ field.name }}" class="help-text">{{ field.help_text|safe }}</small>{% endif %}
-                    {% if field.errors %}<div id="error_{{ field.name }}" class="field-error" role="alert">{{ field.errors }}</div>{% endif %}
-                </div>{% endfor %}
-                <button class="button" type="submit">{{ copy.create_account_action }}</button>
-            </form>
-            <p class="login-prompt"><a href="{% url 'login' %}">{{ copy.log_in }}</a></p>
-        </div>
+    <div class="auth-card">
+        <form class="auth-form" method="post" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="error-summary" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}<div class="form-field">
+                {{ field.label_tag }}{% if field.field.widget.input_type == 'password' %}<div class="password-field-control">{{ field }}<button class="password-toggle" type="button" data-password-toggle aria-controls="{{ field.id_for_label }}" aria-pressed="false" aria-label="Show password"><svg aria-hidden="true"><use href="#icon-eye"></use></svg></button></div>{% else %}{{ field }}{% endif %}
+                {% if field.help_text %}<small id="help_{{ field.name }}" class="help-text">{{ field.help_text|safe }}</small>{% endif %}
+                {% if field.errors %}<div id="error_{{ field.name }}" class="field-error" role="alert">{{ field.errors }}</div>{% endif %}
+            </div>{% endfor %}
+            <button class="button" type="submit">{{ copy.create_account_action }}</button>
+        </form>
+        <p class="login-prompt"><a href="{% url 'login' %}">{{ copy.log_in }}</a></p>
     </div>
 </section>
 {% endblock %}
