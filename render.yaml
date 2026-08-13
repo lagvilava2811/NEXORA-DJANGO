@@ -5,7 +5,7 @@ services:
     plan: free
     branch: main
     autoDeployTrigger: commit
-    healthCheckPath: /en/
+    healthCheckPath: /health/ready/
     envVars:
       - key: DJANGO_DEBUG
         value: "False"
@@ -31,6 +31,20 @@ services:
       - key: EMAIL_HOST_PASSWORD
         sync: false
       - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: DJANGO_MEDIA_BACKEND
+        value: s3
+      - key: AWS_STORAGE_BUCKET_NAME
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_S3_ENDPOINT_URL
+        sync: false
+      - key: AWS_S3_REGION_NAME
+        value: auto
+      - key: AWS_S3_CUSTOM_DOMAIN
         sync: false
       - key: GEMINI_API_KEY
         sync: false

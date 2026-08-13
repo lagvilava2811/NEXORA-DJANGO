@@ -5,6 +5,8 @@ from urllib.parse import unquote, urlparse
 
 from django.core.exceptions import ImproperlyConfigured
 
+from .storage import media_storage_settings
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -105,11 +107,11 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+MEDIA_STORAGE, MEDIA_URL = media_storage_settings(os.environ)
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "default": MEDIA_STORAGE,
     "staticfiles": {"BACKEND": ("django.contrib.staticfiles.storage.StaticFilesStorage" if DEBUG or "test" in sys.argv else "whitenoise.storage.CompressedManifestStaticFilesStorage")},
 }
-MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 FILE_UPLOAD_PERMISSIONS = 0o640
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o750

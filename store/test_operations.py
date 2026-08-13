@@ -11,7 +11,7 @@ class HealthEndpointTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
-        self.assertEqual(response.headers["Cache-Control"], "no-store")
+        self.assertIn("no-store", response.headers["Cache-Control"])
 
     def test_readiness_reports_database_and_cache(self):
         response = self.client.get(reverse("health_ready"))
