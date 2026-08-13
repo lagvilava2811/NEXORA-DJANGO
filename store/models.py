@@ -5,10 +5,35 @@ from django.conf import settings
 from django.contrib.auth.hashers import check_password
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
+from PIL import Image, UnidentifiedImageError
 
 
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "webm", "mov", "ogg"}
 ALLOWED_VIDEO_CONTENT_TYPES = {"video/mp4", "video/webm", "video/ogg", "video/quicktime"}
+MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024
+MAX_PRODUCT_IMAGE_PIXELS = 25_000_000
+
+
+def validate_image_upload(upload):
+    """Reject oversized or spoofed product images before persistent storage."""
+    if getattr(upload, "size", 0) > MAX_PRODUCT_IMAGE_BYTES:
+        raise ValidationError("Product images must be 5 MB or smaller.")
+
+    try:
+        position = upload.tell()
+        with Image.open(upload) as image:
+            width, height = image.size
+            image.verify()
+        upload.seek(position)
+    except (AttributeError, OSError, UnidentifiedImageError, Image.DecompressionBombError):
+        try:
+            upload.seek(0)
+        except (AttributeError, OSError):
+            pass
+        raise ValidationError("Upload a valid JPG, PNG, or WebP image.")
+
+    if width * height > MAX_PRODUCT_IMAGE_PIXELS:
+        raise ValidationError("Product images must not exceed 25 megapixels.")
 
 
 def validate_video_upload(upload):
@@ -275,7 +300,7 @@ class ProductMedia(models.Model):
         ("manual", "Manual/Download"),
     )
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES, default="image")
-    image_file = models.ImageField(upload_to="product_uploads/", blank=True, null=True, validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp"])])
+    image_file = models.ImageField(upload_to="product_uploads/", blank=True, null=True, validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp"]), validate_image_upload])
     video_file = models.FileField(upload_to="product_uploads/", blank=True, null=True, validators=[validate_video_upload])
     external_url = models.URLField(blank=True, null=True)
     source_url = models.URLField(blank=True, null=True)
