@@ -1,4 +1,7 @@
-import * as THREE from './hero3d/three.module.js';
+import { browserExperiencePolicy } from './performance-policy.mjs';
+
+const experience = browserExperiencePolicy();
+const THREE = experience.webgl ? await import('./hero3d/three.module.js') : null;
 
 /*
  * The catalogue is a small 3D media constellation, not a conventional slider.
@@ -8,7 +11,7 @@ import * as THREE from './hero3d/three.module.js';
 const stage = document.querySelector('[data-catalog-webgl]');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-if (stage && !reducedMotion.matches && window.innerWidth > 1040) {
+if (stage && THREE && !reducedMotion.matches && window.innerWidth > 1040) {
     const canvas = stage.querySelector('.catalog-webgl-canvas');
     const sources = [...stage.querySelectorAll('.catalog-motion-card img')]
         .map(image => image.currentSrc || image.src)

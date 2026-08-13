@@ -39,7 +39,7 @@
 </section>
 
 <section class="tech-video nexora-film precision-film" aria-labelledby="motion-title" data-film-section>
-    <video autoplay muted loop playsinline preload="metadata" {% if hero_product %}poster="{{ hero_product.display_image }}"{% endif %}><source src="{% static 'videos/technology-motion.mp4' %}" type="video/mp4"></video>
+    <video muted loop playsinline preload="none" data-adaptive-video {% if hero_product %}poster="{{ hero_product.display_image }}"{% endif %}><source src="{% static 'videos/technology-motion.mp4' %}" type="video/mp4"></video>
     <div class="tech-video-shade" aria-hidden="true"></div>
     <button class="video-toggle" type="button" aria-pressed="false" data-pause-label="{{ copy.video_pause }}" data-play-label="{{ copy.video_play }}"><span>{{ copy.video_pause }}</span></button>
     <div class="tech-video-copy"><p class="hero-kicker">Technology in motion</p><h2 id="motion-title">{{ copy.drop_title }}</h2><p>{{ copy.hero_subtitle }}</p><a class="button" href="{% url 'shop' %}"><span>{{ copy.explore }}</span><i aria-hidden="true">→</i></a></div>
@@ -59,5 +59,5 @@
 {% endblock %}
 {% block extra_scripts %}
 <script src="{% static 'hero3d/gsap.min.js' %}"></script>
-<script type="module" src="{% static 'hero3d/home-hero.js' %}?v=20260714-nordic-audio"></script>
+<script type="module" src="{% static 'hero3d/home-hero.js' %}?v=20260813-adaptive-media"></script>
 {% endblock %}

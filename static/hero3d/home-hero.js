@@ -1,5 +1,8 @@
-import { Engine } from './gl.js';
 import { AudioAnalyzer } from './audio.js';
+import { browserExperiencePolicy } from '../performance-policy.mjs';
+
+const experience = browserExperiencePolicy();
+const { Engine } = experience.webgl ? await import('./gl.js') : { Engine: null };
 
 class AmbientPlayer {
     constructor() {
@@ -86,7 +89,8 @@ const section = document.querySelector('[data-hero3d]');
 const canvas = document.getElementById('hero3d-canvas');
 
 if (section && canvas && window.gsap) {
-    const engine = new Engine({ canvas, container: section });
+    section.dataset.experienceTier = experience.tier;
+    const engine = Engine ? new Engine({ canvas, container: section }) : null;
     const player = new AmbientPlayer();
     const launcher = section.querySelector('.hero3d-launch');
     const panel = section.querySelector('.hero3d-audio-panel');
@@ -125,20 +129,20 @@ if (section && canvas && window.gsap) {
         playButton.setAttribute('aria-label', playing ? ui.pause : ui.play);
     };
     const useAnalyzer = analyzer => {
-        engine.audio = analyzer;
+        if (engine) engine.audio = analyzer;
         setState(analyzer instanceof AmbientPlayer ? ui.ambientLive : ui.micLive);
     };
     const stopMicrophone = () => {
         microphone?.stop?.();
         microphone = null;
-        if (!(engine.audio instanceof AmbientPlayer)) engine.audio = null;
+        if (engine && !(engine.audio instanceof AmbientPlayer)) engine.audio = null;
         micButton?.setAttribute('aria-pressed', 'false');
         micButton?.setAttribute('aria-label', localized.microphoneReaction || ui.micOff);
         setState(player.isPlaying ? ui.ambientLive : ui.micOff);
     };
     const stopAmbient = () => {
         player.stop();
-        if (engine.audio === player) engine.audio = null;
+        if (engine?.audio === player) engine.audio = null;
         setPlayButton(false);
         setState(microphone ? ui.micLive : ui.ready);
     };
@@ -196,13 +200,17 @@ if (section && canvas && window.gsap) {
 
     const syncReducedMotion = () => {
         if (reducedMotion?.matches) {
-            engine.isVisible = false;
-            engine.syncAnimationState();
+            if (engine) {
+                engine.isVisible = false;
+                engine.syncAnimationState();
+            }
             section.querySelector('video')?.pause();
             setState(ui.motionReduced);
         } else {
-            engine.isVisible = true;
-            engine.syncAnimationState();
+            if (engine) {
+                engine.isVisible = true;
+                engine.syncAnimationState();
+            }
             setState(player.isPlaying ? ui.ambientLive : ui.ready);
         }
     };
@@ -211,6 +219,16 @@ if (section && canvas && window.gsap) {
     window.addEventListener('pagehide', () => {
         player.stop();
         stopMicrophone();
-        engine.dispose();
+        engine?.dispose();
     }, { once: true });
+
+    const ambientVideo = document.querySelector('[data-adaptive-video]');
+    if (ambientVideo && experience.ambientVideo) {
+        const videoObserver = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) ambientVideo.play().catch(() => {});
+            else ambientVideo.pause();
+        }, { rootMargin: '160px 0px', threshold: 0.05 });
+        videoObserver.observe(ambientVideo);
+        window.addEventListener('pagehide', () => videoObserver.disconnect(), { once: true });
+    }
 }
