@@ -32,6 +32,24 @@ class HealthEndpointTests(TestCase):
         self.assertNotContains(response, "database unavailable", status_code=503)
 
 
+class RequestIdMiddlewareTests(SimpleTestCase):
+    def test_every_response_receives_a_request_id(self):
+        response = self.client.get(reverse("health_live"))
+
+        self.assertRegex(response.headers["X-Request-ID"], r"^[A-Za-z0-9._-]{8,64}$")
+
+    def test_valid_upstream_request_id_is_preserved(self):
+        response = self.client.get(reverse("health_live"), headers={"X-Request-ID": "edge-12345678"})
+
+        self.assertEqual(response.headers["X-Request-ID"], "edge-12345678")
+
+    def test_untrusted_request_id_is_replaced(self):
+        response = self.client.get(reverse("health_live"), headers={"X-Request-ID": "bad id\r\nInjected: yes"})
+
+        self.assertNotEqual(response.headers["X-Request-ID"], "bad id\r\nInjected: yes")
+        self.assertRegex(response.headers["X-Request-ID"], r"^[A-Za-z0-9._-]{8,64}$")
+
+
 class MediaStorageConfigurationTests(SimpleTestCase):
     def test_local_storage_remains_the_safe_development_default(self):
         from musea.storage import media_storage_settings

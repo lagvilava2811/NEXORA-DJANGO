@@ -1,9 +1,29 @@
 import secrets
+import re
 
 from django.conf import settings
 from django.http import HttpResponse
 
 from .security import login_rate_limited
+
+
+REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
+
+
+class RequestIdMiddleware:
+    """Attach a safe correlation identifier to every request and response."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        upstream_id = request.headers.get("X-Request-ID", "")
+        request.request_id = (
+            upstream_id if REQUEST_ID_PATTERN.fullmatch(upstream_id) else secrets.token_hex(16)
+        )
+        response = self.get_response(request)
+        response["X-Request-ID"] = request.request_id
+        return response
 
 
 class SecurityHeadersMiddleware:
