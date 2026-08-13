@@ -26,12 +26,24 @@ test('low-memory and low-core devices avoid WebGL and ambient video', () => {
   });
 });
 
+test('small viewports use the lightweight experience even on powerful devices', () => {
+  assert.deepEqual(
+    experiencePolicy({
+      viewportWidth: 375,
+      deviceMemory: 8,
+      hardwareConcurrency: 8,
+    }),
+    { tier: 'lite', webgl: false, ambientVideo: false },
+  );
+});
+
 test('capable devices retain the full premium experience', () => {
   assert.deepEqual(
     experiencePolicy({
       reducedMotion: false,
       saveData: false,
       effectiveType: '4g',
+      viewportWidth: 1440,
       deviceMemory: 8,
       hardwareConcurrency: 8,
     }),

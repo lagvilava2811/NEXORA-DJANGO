@@ -318,6 +318,8 @@ input, textarea, select { border-radius: var(--radius-sm); background: var(--bg-
 
 @media (max-width: 42rem) {
   :root { --page: calc(100% - 1.5rem); }
+  .site-footer { grid-template-columns: 1fr; gap: 1.5rem; }
+  .site-footer .mono { justify-self: start; text-align: left; }
   .brand-descriptor, .header-tools .tool-link span, .bag-link > span { display: none; }
   .site-header { min-height: 4rem; gap: .55rem; padding-inline: .75rem; }
   .header-tools { gap: .3rem; }
