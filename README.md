@@ -93,6 +93,14 @@ docker compose up --build
 
 Terminate TLS at a trusted reverse proxy and retain the configured forwarded-protocol header. Connect a certified payment provider before accepting online card payments; the included checkout supports a safe cash-on-delivery flow and server-side order creation.
 
+### Health checks and product media
+
+Use `/health/live/` for process liveness and `/health/ready/` for database/cache readiness. Both endpoints are language-independent and return non-cacheable JSON.
+
+Local development stores uploaded media in `media/`. Production should set `DJANGO_MEDIA_BACKEND=s3` and provide the `AWS_*` variables documented in `.env.example`. The same configuration supports Amazon S3 and S3-compatible services such as Cloudflare R2. `AWS_S3_CUSTOM_DOMAIN` should point to the public CDN/media hostname.
+
+Every push to `main` and every pull request runs Django checks, migration drift detection, the complete test suite with an 80% coverage floor, dependency auditing, and production deployment checks.
+
 ## Media and archive policy
 
 Product media is intentionally local so pages do not depend on expiring third-party URLs. Source URLs remain as attribution records only. The final archive excludes virtual environments, bytecode, test caches, staging downloads, secrets, and generated static output. Do not remove `media/product_uploads/` or the included database from the self-contained local build.

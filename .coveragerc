@@ -1,0 +1,16 @@
+[run]
+branch = True
+omit =
+    */migrations/*
+    store/management/commands/*
+    *\\management\\commands\\*
+    manage.py
+    musea/asgi.py
+    musea/wsgi.py
+
+[report]
+show_missing = True
+skip_covered = True
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
