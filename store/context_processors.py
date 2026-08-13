@@ -524,3 +524,35 @@ RATING_COPIES = {
 }
 for language, values in RATING_COPIES.items():
     COPIES[language].update(values)
+
+PREMIUM_UI_COPIES = {
+    "en": {
+        "sort": "Sort products", "ambient_player": "Ambient audio player",
+        "microphone_reaction": "Use microphone for live visual reaction", "open_audio_player": "Open ambient audio player",
+        "play_ambient": "Play ambient sound", "ambient_signal": "Ambient signal", "ambient_volume": "Ambient volume",
+        "choose_track": "Choose an ambient track", "audio_ready": "Ambient audio ready", "pause_ambient": "Pause ambient sound",
+        "ambient_live": "Ambient audio live", "mic_live": "Microphone live", "mic_off": "Microphone off",
+        "stop_microphone": "Stop microphone reaction", "microphone_unavailable": "Microphone unavailable", "motion_reduced": "Motion reduced", "pull_cord": "Pull the cord to continue",
+        "technology_motion": "Technology in motion", "featured_technology": "Featured technology", "track_part": "Nordic music part",
+    },
+    "ka": {
+        "sort": "დახარისხება", "ambient_player": "ატმოსფერული აუდიო პლეიერი",
+        "microphone_reaction": "მიკროფონის გამოყენება ცოცხალი ვიზუალური რეაქციისთვის", "open_audio_player": "აუდიო პლეიერის გახსნა",
+        "play_ambient": "ფონური ხმის ჩართვა", "ambient_signal": "ატმოსფერული სიგნალი", "ambient_volume": "ხმის დონე",
+        "choose_track": "ატმოსფერული ტრეკის არჩევა", "audio_ready": "ატმოსფერული აუდიო მზადაა", "pause_ambient": "ფონური ხმის შეჩერება",
+        "ambient_live": "ატმოსფერული აუდიო აქტიურია", "mic_live": "მიკროფონი აქტიურია", "mic_off": "მიკროფონი გამორთულია",
+        "stop_microphone": "მიკროფონის რეაქციის შეჩერება", "microphone_unavailable": "მიკროფონი მიუწვდომელია", "motion_reduced": "მოძრაობა შემცირებულია", "pull_cord": "ჩამოწიე თოკი გასაგრძელებლად",
+        "technology_motion": "ტექნოლოგია მოძრაობაში", "featured_technology": "რჩეული ტექნოლოგია", "track_part": "ნორდიკული მელოდიის ნაწილი",
+    },
+    "ru": {
+        "sort": "Сортировка", "ambient_player": "Атмосферный аудиоплеер",
+        "microphone_reaction": "Использовать микрофон для живой визуальной реакции", "open_audio_player": "Открыть аудиоплеер",
+        "play_ambient": "Включить фоновый звук", "ambient_signal": "Атмосферный сигнал", "ambient_volume": "Громкость",
+        "choose_track": "Выбрать атмосферный трек", "audio_ready": "Атмосферное аудио готово", "pause_ambient": "Приостановить фоновый звук",
+        "ambient_live": "Атмосферное аудио активно", "mic_live": "Микрофон активен", "mic_off": "Микрофон выключен",
+        "stop_microphone": "Остановить реакцию микрофона", "microphone_unavailable": "Микрофон недоступен", "motion_reduced": "Движение уменьшено", "pull_cord": "Потяните шнур, чтобы продолжить",
+        "technology_motion": "Технологии в движении", "featured_technology": "Избранные технологии", "track_part": "Часть северной мелодии",
+    },
+}
+for language, values in PREMIUM_UI_COPIES.items():
+    COPIES[language].update(values)

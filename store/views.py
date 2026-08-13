@@ -167,11 +167,16 @@ def shop(request):
     ).distinct().order_by("name")
     price_range = published.aggregate(min_price=Min("price"), max_price=Max("price"))
     page = Paginator(products, 24, orphans=3).get_page(request.GET.get("page"))
+    # Curated local catalog images for the visual masthead; no external media.
+    hero_products = list(
+        Product.objects.storefront().order_by("-is_featured", "-rating", "pk")[:14]
+    )
     return render(
         request,
         "shop.html",
         {
             "products": page,
+            "hero_products": hero_products,
             "page": page,
             "query": query,
             "categories": Category.objects.filter(is_active=True).order_by("display_order", "name"),

@@ -5,12 +5,19 @@ export class AudioAnalyzer {
         this.analyzer.fftSize = 256;
         this.dataArray = new Uint8Array(this.analyzer.frequencyBinCount);
         this.volume = 0;
+        this.stream = null;
     }
 
     async init() {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const source = this.context.createMediaStreamSource(stream);
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const source = this.context.createMediaStreamSource(this.stream);
         source.connect(this.analyzer);
+    }
+
+    stop() {
+        this.stream?.getTracks().forEach(track => track.stop());
+        this.stream = null;
+        this.context?.close?.();
     }
 
     update() {

@@ -1,11 +1,26 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %}{% load static %}
 {% block title %}{{ copy.create_account }} | NEXORA{% endblock %}
 {% block robots %}noindex,nofollow{% endblock %}
 {% block content %}
-<section class="auth-section" aria-labelledby="signup-title">
-    <p class="eyebrow">{{ copy.account_eyebrow }}</p>
-    <h1 id="signup-title">{{ copy.create_account }}</h1>
-    <div class="auth-card">
+<section class="auth-section commerce-shell auth-flow signup-lamp-flow{% if form.errors %} is-lamp-on{% endif %}" aria-labelledby="signup-title" data-signup-lamp data-form-errors="{% if form.errors %}true{% else %}false{% endif %}">
+    <div class="signup-lamp-stage" aria-hidden="true">
+        <svg class="signup-lamp-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
+            <ellipse class="signup-lamp-glow" cx="100" cy="110" rx="62" ry="32" />
+            <rect class="signup-lamp-base" x="92" y="100" width="16" height="160" rx="8" />
+            <rect class="signup-lamp-base" x="60" y="250" width="80" height="12" rx="6" />
+            <line class="signup-lamp-cord" x1="130" y1="110" x2="130" y2="180" />
+            <circle class="signup-lamp-bead" cx="130" cy="190" r="6" />
+            <path class="signup-lamp-shade" d="M30 110 C30 50 170 50 170 110 C170 125 30 125 30 110 Z" />
+        </svg>
+        <button class="signup-lamp-toggle" type="button" data-lamp-toggle aria-pressed="true" aria-label="{{ copy.pull_cord }}">
+            <span class="signup-lamp-cord-hit" aria-hidden="true"></span>
+            <span class="signup-lamp-instruction">{{ copy.pull_cord }}</span>
+        </button>
+    </div>
+    <div class="signup-form-column">
+      <p class="eyebrow">{{ copy.account_eyebrow }}</p>
+      <h1 id="signup-title">{{ copy.create_account }}</h1>
+      <div class="auth-card auth-panel">
         <form class="auth-form" method="post" novalidate>
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="error-summary" role="alert">{{ form.non_field_errors }}</div>{% endif %}
@@ -17,6 +32,8 @@
             <button class="button" type="submit">{{ copy.create_account_action }}</button>
         </form>
         <p class="login-prompt"><a href="{% url 'login' %}">{{ copy.log_in }}</a></p>
+      </div>
     </div>
 </section>
 {% endblock %}
+{% block extra_scripts %}<script src="{% static 'signup-lamp.js' %}" defer></script>{% endblock %}

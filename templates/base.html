@@ -22,8 +22,10 @@
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
     <link rel="stylesheet" href="{% static 'store.css' %}?v=20260714-player-layer">
+    <link rel="stylesheet" href="{% static 'premium.css' %}?v=20260718-premium-polish">
     <link rel="stylesheet" href="{% static 'variant-picker.css' %}?v=20260714-variants">
     <script src="{% static 'store.js' %}?v=20260714-variants" defer></script>
+    <script src="{% static 'premium.js' %}?v=20260718-premium-polish" defer></script>
     <script nonce="{{ csp_nonce }}" type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"NEXORA","url":"{{ request.scheme }}://{{ request.get_host }}{% url 'home' %}","potentialAction":{"@type":"SearchAction","target":"{{ request.scheme }}://{{ request.get_host }}{% url 'shop' %}?q={search_term_string}","query-input":"required name=search_term_string"}}</script>
 </head>
 <body
@@ -59,15 +61,15 @@
     </svg>
 
     <div class="scroll-progress" aria-hidden="true"></div>
-    <header class="site-header">
-        <a class="brand" href="{% url 'home' %}" aria-label="{{ copy.home_label }}">NEXORA<span>.tech</span></a>
+    <header class="site-header" data-site-header>
+        <a class="brand" href="{% url 'home' %}" aria-label="{{ copy.home_label }}"><span class="brand-mark" aria-hidden="true">N</span><span class="brand-word">NEXORA</span><span class="brand-descriptor">TECHNOLOGY</span></a>
         <button class="icon-button nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" aria-label="{{ copy.open_menu }}">
             <svg aria-hidden="true"><use href="#icon-menu"></use></svg>
         </button>
         <nav id="primary-navigation" class="primary-nav" aria-label="{{ copy.main_navigation }}">
-            <a href="{% url 'shop' %}">{{ copy.shop }}</a>
+            <a href="{% url 'shop' %}"{% if request.resolver_match.url_name == 'shop' %} aria-current="page"{% endif %}>{{ copy.shop }}</a>
             {% for category in global_categories|slice:':5' %}
-                <a href="{% url 'shop' %}?category={{ category.slug }}">{{ category.localized_name }}</a>
+                <a href="{% url 'shop' %}?category={{ category.slug }}"{% if request.GET.category == category.slug %} aria-current="page"{% endif %}>{{ category.localized_name }}</a>
             {% endfor %}
         </nav>
         <div class="header-tools">
@@ -108,7 +110,7 @@
     <main id="main-content" tabindex="-1">{% block content %}{% endblock %}</main>
 
     <footer class="site-footer">
-        <div><a class="brand" href="{% url 'home' %}">NEXORA<span>.tech</span></a><p>{{ copy.footer_tagline }}</p></div>
+        <div><a class="brand" href="{% url 'home' %}"><span class="brand-mark" aria-hidden="true">N</span><span class="brand-word">NEXORA</span></a><p>{{ copy.footer_tagline }}</p></div>
         <nav class="footer-links" aria-label="Footer">
             <a href="{% url 'shop' %}">{{ copy.all_objects }}</a>
             <a href="{% url 'checkout' %}">{{ copy.delivery_returns }}</a>

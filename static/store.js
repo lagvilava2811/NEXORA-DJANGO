@@ -224,6 +224,36 @@
         renderCart(await response.json());
     };
 
+    const flyProductToBag = form => {
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+        const cardImage = form.closest('.product-card')?.querySelector('.product-image img');
+        const image = cardImage || form.closest('.pdp-container')?.querySelector('#main-product-image');
+        const bag = document.querySelector('.bag-link');
+        if (!image || !bag) return;
+        const source = image.getBoundingClientRect();
+        const target = bag.getBoundingClientRect();
+        if (!source.width || !target.width) return;
+        const flight = image.cloneNode(false);
+        flight.className = 'bag-flight';
+        flight.alt = '';
+        flight.setAttribute('aria-hidden', 'true');
+        flight.style.left = `${source.left + source.width / 2 - 32}px`;
+        flight.style.top = `${source.top + source.height / 2 - 32}px`;
+        document.body.append(flight);
+        const deltaX = target.left + target.width / 2 - (source.left + source.width / 2);
+        const deltaY = target.top + target.height / 2 - (source.top + source.height / 2);
+        const animation = flight.animate([
+            { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1 },
+            { transform: `translate3d(${deltaX * .42}px, ${deltaY * .24 - 36}px, 0) scale(.72)`, opacity: .95, offset: .45 },
+            { transform: `translate3d(${deltaX}px, ${deltaY}px, 0) scale(.18)`, opacity: 0 },
+        ], { duration: 520, easing: 'cubic-bezier(.16, 1, .3, 1)' });
+        animation.finished.catch(() => {}).finally(() => {
+            flight.remove();
+            bag.classList.remove('is-receiving');
+        });
+        bag.classList.add('is-receiving');
+    };
+
     document.addEventListener('submit', async event => {
         const form = event.target.closest('form[data-add-to-bag]');
         if (!form) return;
@@ -236,6 +266,7 @@
             });
             if (!response.ok) throw new Error(body.dataset.cartAddError);
             renderCart(await response.json());
+            flyProductToBag(form);
             await openCart(submit || form);
             announce(body.dataset.productAdded);
         } catch (error) {

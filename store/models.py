@@ -315,6 +315,13 @@ class ProductMedia(models.Model):
     def __str__(self):
         return f"{self.product.name} media ({self.media_type})"
 
+    @property
+    def localized_alt(self):
+        from django.utils.translation import get_language
+
+        language = (get_language() or "en").split("-", 1)[0]
+        return getattr(self, f"alt_text_{language}", "") or self.product.localized_name
+
 
 class TechnicalSpecification(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="specifications")
