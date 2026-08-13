@@ -393,7 +393,7 @@ input, textarea, select { border-radius: var(--radius-sm); background: var(--bg-
 .signup-lamp-flow.is-lamp-on { --lamp-light: 1; }
 .signup-lamp-flow:not(.is-lamp-on) .signup-lamp-shade { fill: oklch(63% .012 85); }
 .signup-lamp-flow:not(.is-lamp-on) .signup-lamp-bead { transform: translateY(.7rem); }
-.signup-lamp-flow[data-form-errors="false"] .signup-form-column { max-height: 0; overflow: hidden; opacity: 0; transform: translate3d(0, 1.35rem, 0); pointer-events: none; transition: max-height 560ms var(--ease-out), opacity 280ms var(--ease-out), transform 560ms var(--ease-out); }
-.signup-lamp-flow.is-lamp-on .signup-form-column { max-height: 60rem; opacity: 1; transform: translate3d(0, 0, 0); pointer-events: auto; }
+.signup-lamp-flow[data-form-errors="false"] .signup-form-column { visibility: hidden; opacity: 0; clip-path: inset(0 0 100% 0 round var(--radius-lg)); transform: translate3d(0, 1.35rem, 0); pointer-events: none; transition: visibility 0s linear 560ms, clip-path 560ms var(--ease-out), opacity 280ms var(--ease-out), transform 560ms var(--ease-out); }
+.signup-lamp-flow.is-lamp-on .signup-form-column { visibility: visible; opacity: 1; clip-path: inset(0 0 0 0 round var(--radius-lg)); transform: translate3d(0, 0, 0); pointer-events: auto; transition-delay: 0s; }
 @media (max-width: 58rem) { .signup-lamp-flow { grid-template-columns: 1fr; gap: .2rem; width: min(34rem, var(--page)); min-height: auto; padding-block: 3rem; } .signup-lamp-stage { min-height: 13rem; } .signup-lamp-svg { width: 10rem; } .signup-lamp-toggle { top: 18%; left: 58%; height: 62%; transform: scale(.78); } .signup-form-column { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .signup-lamp-stage::before, .signup-lamp-shade, .signup-lamp-glow, .signup-lamp-bead { transition: none; } }
