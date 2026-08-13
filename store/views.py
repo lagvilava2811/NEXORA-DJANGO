@@ -1,7 +1,6 @@
 import json
 import re
 from urllib.parse import urlencode
-from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
@@ -10,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from django.db.models import Avg, Count, F, Max, Min, Q
+from django.db.models import Avg, Count, Max, Min, Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -57,6 +56,7 @@ from .services import (
     safe_quantity,
     valid_coupon,
 )
+from .selectors.catalog import CatalogFilters
 
 
 def rows(request):
@@ -73,18 +73,6 @@ def _safe_next(request, fallback):
     ):
         return target
     return reverse(fallback)
-
-
-def _decimal_param(value):
-    if not value:
-        return None
-    try:
-        parsed = Decimal(value)
-    except (InvalidOperation, TypeError, ValueError):
-        return None
-    if parsed < 0 or parsed > Decimal("1000000"):
-        return None
-    return parsed
 
 
 @require_GET
@@ -112,54 +100,8 @@ def home(request):
 
 @require_GET
 def shop(request):
-    products = Product.objects.storefront()
-    query = request.GET.get("q", "").strip()[:120]
-    if query:
-        products = products.filter(
-            Q(name__icontains=query)
-            | Q(name_ka__icontains=query)
-            | Q(name_en__icontains=query)
-            | Q(name_ru__icontains=query)
-            | Q(description__icontains=query)
-            | Q(short_description__icontains=query)
-            | Q(full_description__icontains=query)
-            | Q(brand__icontains=query)
-            | Q(sku__icontains=query)
-        )
-
-    category = request.GET.get("category", "")[:100]
-    if category:
-        products = products.filter(category__slug=category)
-    brand = request.GET.get("brand", "").strip()[:100]
-    if brand:
-        products = products.filter(
-            Q(brand__iexact=brand) | Q(brand_obj__slug=brand) | Q(brand_obj__name__iexact=brand)
-        )
-
-    min_price = _decimal_param(request.GET.get("min_price"))
-    max_price = _decimal_param(request.GET.get("max_price"))
-    if min_price is not None:
-        products = products.filter(price__gte=min_price)
-    if max_price is not None:
-        products = products.filter(price__lte=max_price)
-    if request.GET.get("in_stock") == "1":
-        products = products.filter(stock__gt=0)
-
-    min_rating = _decimal_param(request.GET.get("min_rating"))
-    if min_rating is not None and min_rating <= 5:
-        products = products.filter(rating__gte=min_rating)
-    if request.GET.get("discount") == "1":
-        products = products.filter(compare_at_price__isnull=False, compare_at_price__gt=F("price"))
-
-    sort = request.GET.get("sort", "featured")
-    ordering = {
-        "price-asc": "price",
-        "price-desc": "-price",
-        "rating": "-rating",
-        "new": "-created_at",
-        "name": "name",
-    }.get(sort, "-is_featured")
-    products = products.order_by(ordering, "name", "pk")
+    filters = CatalogFilters.from_query(request.GET)
+    products = filters.apply(Product.objects.storefront())
 
     published = Product.objects.published()
     available_brands = Brand.objects.filter(
@@ -178,13 +120,13 @@ def shop(request):
             "products": page,
             "hero_products": hero_products,
             "page": page,
-            "query": query,
+            "query": filters.query,
             "categories": Category.objects.filter(is_active=True).order_by("display_order", "name"),
-            "category": category,
-            "current_brand": brand,
+            "category": filters.category,
+            "current_brand": filters.brand,
             "available_brands": available_brands,
             "price_range": price_range,
-            "current_sort": sort,
+            "current_sort": filters.sort,
             "current_min_price": request.GET.get("min_price", ""),
             "current_max_price": request.GET.get("max_price", ""),
             "current_min_rating": request.GET.get("min_rating", ""),
