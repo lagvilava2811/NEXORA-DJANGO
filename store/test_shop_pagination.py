@@ -4,7 +4,7 @@ from django.core.paginator import Paginator
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Category, Product
+from .models import Category, Product, ProductMedia
 
 
 class ShopPaginationTests(TestCase):
@@ -26,6 +26,22 @@ class ShopPaginationTests(TestCase):
             )
             for number in range(50)
         ])
+        products = list(Product.objects.order_by("pk"))
+        ProductMedia.objects.bulk_create([
+            ProductMedia(
+                product=product,
+                media_type="image",
+                image_file=f"product_uploads/test/{product.sku}.webp",
+                is_verified=True,
+                is_primary=True,
+                source_url="https://example.com/source",
+                source_item_id=f"test-{product.pk}",
+                licence_note="Test fixture",
+                image_sha256=f"{product.pk:064x}",
+                perceptual_hash=f"{product.pk:016x}",
+            )
+            for product in products
+        ])
 
     def test_elided_range_uses_two_neighbours_and_two_ends(self):
         paginator = Paginator(range(1, 1001), 1)
@@ -41,6 +57,5 @@ class ShopPaginationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "store/pagination.html")
-        self.assertContains(response, "page=1&amp;category=phones&amp;q=Phone&amp;sort=price-asc")
+        self.assertContains(response, "category=phones&amp;q=Phone&amp;sort=price-asc&amp;page=1")
         self.assertContains(response, "aria-current=\"page\">2")
-

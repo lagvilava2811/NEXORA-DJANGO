@@ -1,0 +1,31 @@
+{% if page.has_other_pages %}
+<nav class="pagination pagination--full" aria-label="{% if request.LANGUAGE_CODE == 'ka' %}გვერდების ნავიგაცია{% elif request.LANGUAGE_CODE == 'ru' %}Навигация по страницам{% else %}Pagination{% endif %}">
+    {% if page.has_previous %}
+        <a class="pagination-control pagination-first" href="{% querystring page=1 %}">{% if request.LANGUAGE_CODE == 'ka' %}პირველი{% elif request.LANGUAGE_CODE == 'ru' %}Первая{% else %}First{% endif %}</a>
+        <a class="pagination-control" rel="prev" href="{% querystring page=page.previous_page_number %}">← <span>{{ copy.previous }}</span></a>
+    {% else %}
+        <span class="pagination-control disabled" aria-disabled="true">{% if request.LANGUAGE_CODE == 'ka' %}პირველი{% elif request.LANGUAGE_CODE == 'ru' %}Первая{% else %}First{% endif %}</span>
+        <span class="pagination-control disabled" aria-disabled="true">← <span>{{ copy.previous }}</span></span>
+    {% endif %}
+
+    <span class="pagination-pages">
+        {% for page_number in page_range %}
+            {% if page_number == page.paginator.ELLIPSIS %}
+                <span class="pagination-ellipsis" aria-hidden="true">{{ page.paginator.ELLIPSIS }}</span>
+            {% elif page_number == page.number %}
+                <span class="page-num is-current" aria-current="page">{{ page_number }}</span>
+            {% else %}
+                <a class="page-num" href="{% querystring page=page_number %}" aria-label="{% if request.LANGUAGE_CODE == 'ka' %}გვერდი{% elif request.LANGUAGE_CODE == 'ru' %}Страница{% else %}Page{% endif %} {{ page_number }}">{{ page_number }}</a>
+            {% endif %}
+        {% endfor %}
+    </span>
+
+    {% if page.has_next %}
+        <a class="pagination-control" rel="next" href="{% querystring page=page.next_page_number %}"><span>{{ copy.next }}</span> →</a>
+        <a class="pagination-control pagination-last" href="{% querystring page=page.paginator.num_pages %}">{% if request.LANGUAGE_CODE == 'ka' %}ბოლო{% elif request.LANGUAGE_CODE == 'ru' %}Последняя{% else %}Last{% endif %}</a>
+    {% else %}
+        <span class="pagination-control disabled" aria-disabled="true"><span>{{ copy.next }}</span> →</span>
+        <span class="pagination-control disabled" aria-disabled="true">{% if request.LANGUAGE_CODE == 'ka' %}ბოლო{% elif request.LANGUAGE_CODE == 'ru' %}Последняя{% else %}Last{% endif %}</span>
+    {% endif %}
+</nav>
+{% endif %}
