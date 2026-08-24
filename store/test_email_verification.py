@@ -48,32 +48,31 @@ class EmailVerificationFlowTests(TestCase):
     def signup(self):
         return self.client.post(reverse("signup"), self.signup_data)
 
-    def test_signup_sends_six_digit_code_and_stores_only_hash(self):
+    def test_signup_sends_one_time_link_and_stores_only_link_hash(self):
         response = self.signup()
         user = get_user_model().objects.get(username="verify-user")
         verification = EmailVerification.objects.get(user=user)
         body = mail.outbox[0].body
-        code = next(part for part in body.split() if part.isdigit() and len(part) == 6)
+        match = re.search(r"https?://testserver(?P<path>/[^\s]+verify-email/link/[^\s]+)", body)
 
         self.assertRedirects(response, reverse("verify_email"))
         self.assertFalse(user.is_active)
-        self.assertNotIn(code, verification.code_digest)
-        self.assertTrue(verification.check_code(code))
+        self.assertIsNotNone(match)
+        self.assertEqual(verification.code_digest, "")
+        self.assertTrue(verification.link_token_digest)
 
     def test_unverified_account_cannot_authenticate(self):
         self.signup()
         self.client.post(reverse("login"), {"username": "verify-user", "password": "A-secure-password-2026!"})
         self.assertNotIn("_auth_user_id", self.client.session)
 
-    def test_correct_code_activates_and_logs_user_in(self):
+    def test_verification_page_does_not_offer_a_manual_code_form(self):
         self.signup()
-        code = next(part for part in mail.outbox[0].body.split() if part.isdigit() and len(part) == 6)
-        response = self.client.post(reverse("verify_email"), {"code": code})
-        user = get_user_model().objects.get(username="verify-user")
-
-        self.assertTrue(user.is_active)
-        self.assertIn("_auth_user_id", self.client.session)
-        self.assertRedirects(response, reverse("cabinet"))
+        response = self.client.get(reverse("verify_email"))
+        self.assertNotContains(response, 'name="code"')
+        self.assertNotContains(response, 'six-digit')
+        self.client.post(reverse("verify_email"), {"code": "000000"})
+        self.assertFalse(get_user_model().objects.get(username="verify-user").is_active)
 
     def test_signup_email_also_contains_one_time_link_that_activates_account(self):
         self.signup()
@@ -103,25 +102,18 @@ class EmailVerificationFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(get_user_model().objects.get(username="verify-user").is_active)
 
-    def test_expired_or_attempt_exhausted_code_is_rejected(self):
+    def test_expired_link_is_rejected(self):
         self.signup()
         verification = EmailVerification.objects.get(user__username="verify-user")
+        match = re.search(r"https?://testserver(?P<path>/[^\s]+verify-email/link/[^\s]+)", mail.outbox[0].body)
         verification.expires_at = timezone.now() - timedelta(seconds=1)
         verification.save(update_fields=["expires_at"])
-        response = self.client.post(reverse("verify_email"), {"code": "000000"})
+        response = self.client.get(match.group("path"))
         self.assertContains(response, "expired", status_code=200)
 
-        verification.expires_at = timezone.now() + timedelta(minutes=10)
-        verification.failed_attempts = 2
-        verification.save(update_fields=["expires_at", "failed_attempts"])
-        self.client.post(reverse("verify_email"), {"code": "000000"})
-        verification.refresh_from_db()
-        self.assertEqual(verification.failed_attempts, 3)
-        self.assertTrue(verification.is_locked)
-
-    def test_resend_enforces_cooldown_and_rotates_code(self):
+    def test_resend_enforces_cooldown_and_rotates_link(self):
         self.signup()
-        first_digest = EmailVerification.objects.get(user__username="verify-user").code_digest
+        first_digest = EmailVerification.objects.get(user__username="verify-user").link_token_digest
         response = self.client.post(reverse("resend_verification"))
         self.assertContains(response, localized_page_text('en')['sent'], status_code=200)
         self.assertEqual(len(mail.outbox), 1)
@@ -132,7 +124,7 @@ class EmailVerificationFlowTests(TestCase):
         self.client.post(reverse("resend_verification"))
         verification.refresh_from_db()
         self.assertEqual(len(mail.outbox), 2)
-        self.assertNotEqual(verification.code_digest, first_digest)
+        self.assertNotEqual(verification.link_token_digest, first_digest)
 
     @patch("store.verification.send_mail", side_effect=RuntimeError("SMTP down"))
     def test_delivery_failure_rolls_back_account_creation(self, _send):
@@ -148,7 +140,8 @@ class EmailVerificationFlowTests(TestCase):
                 self.assertContains(response, localized_page_text(language)['title'])
                 subject, body = localized_email(language)
                 self.assertTrue(subject)
-                self.assertIn('{code}', body)
+                self.assertIn('{link}', body)
+                self.assertNotIn('{code}', body)
 
     def test_session_loss_recovery_is_normalized_and_non_enumerating(self):
         self.signup()
@@ -181,17 +174,17 @@ class EmailVerificationFlowTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, localized_page_text('en')['sent'])
             self.assertTrue(response.context['can_verify'])
-            self.assertContains(response, 'id_code')
+            self.assertNotContains(response, 'id_code')
 
-        unknown_code = self.client.post(reverse('verify_email'), {'code': '123456'})
-        self.assertEqual(unknown_code.status_code, 200)
+        unknown_page = self.client.get(reverse('verify_email'))
+        self.assertEqual(unknown_page.status_code, 200)
         self.assertNotIn('_auth_user_id', self.client.session)
         self.assertFalse(get_user_model().objects.get(username='verify-user').is_active)
 
     def test_verified_account_cannot_be_reactivated_after_admin_suspension(self):
         self.signup()
-        code = next(part for part in mail.outbox[0].body.split() if part.isdigit() and len(part) == 6)
-        self.client.post(reverse('verify_email'), {'code': code})
+        match = re.search(r"https?://testserver(?P<path>/[^\s]+verify-email/link/[^\s]+)", mail.outbox[0].body)
+        self.client.get(match.group('path'))
         user = get_user_model().objects.get(username='verify-user')
         verification = EmailVerification.objects.get(user=user)
         self.assertIsNone(verification.pending_verification_at)
@@ -261,6 +254,6 @@ class EmailVerificationFlowTests(TestCase):
     def test_external_next_url_is_not_used_after_verification(self):
         response = self.client.post(reverse("signup") + "?next=https://evil.example/", self.signup_data)
         self.assertRedirects(response, reverse("verify_email"))
-        code = next(part for part in mail.outbox[0].body.split() if part.isdigit() and len(part) == 6)
-        verified = self.client.post(reverse("verify_email"), {"code": code})
+        match = re.search(r"https?://testserver(?P<path>/[^\s]+verify-email/link/[^\s]+)", mail.outbox[0].body)
+        verified = self.client.get(match.group('path'))
         self.assertRedirects(verified, reverse("cabinet"))

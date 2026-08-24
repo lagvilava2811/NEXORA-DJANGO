@@ -31,7 +31,6 @@ from .forms import (
     ProductRatingForm,
     ReviewForm,
     SignupForm,
-    VerificationCodeForm,
     VerificationRecoveryForm,
     form_text,
 )
@@ -650,58 +649,12 @@ def verify_email_view(request):
         return redirect('cabinet')
     record = _verification_record(request)
     text = localized_page_text(get_language())
-    form = VerificationCodeForm(request.POST or None)
     recovery_form = VerificationRecoveryForm()
-    verified_user = None
-
-    if record is None:
-        context = {
-            'form': form,
-            'recovery_form': recovery_form,
-            'text': text,
-            'masked_email': '***',
-            'can_verify': False,
-        }
-        return render(request, 'verify_email.html', context)
-
-    if request.method == 'POST' and form.is_valid():
-        with transaction.atomic():
-            record = EmailVerification.objects.select_for_update().select_related('user').get(pk=record.pk)
-            if record.verified_at is not None or record.pending_verification_at is None or record.user.is_active:
-                form.add_error('code', text['invalid'])
-            elif record.is_expired:
-                form.add_error('code', text['expired'])
-            elif record.is_locked:
-                form.add_error('code', text['locked'])
-            elif record.check_code(form.cleaned_data['code']):
-                record.user.is_active = True
-                record.user.save(update_fields=['is_active'])
-                record.verified_at = timezone.now()
-                record.pending_verification_at = None
-                record.code_digest = ''
-                record.link_token_digest = ''
-                record.save(update_fields=['verified_at', 'pending_verification_at', 'code_digest', 'link_token_digest', 'updated_at'])
-                verified_user = record.user
-            else:
-                record.failed_attempts += 1
-                record.save(update_fields=['failed_attempts', 'updated_at'])
-                message = text['locked'] if record.is_locked else text['invalid']
-                form.add_error('code', message)
-
-    if verified_user is not None:
-        login(request, verified_user, backend='django.contrib.auth.backends.ModelBackend')
-        request.session.pop('pending_verification_user_id', None)
-        target = request.session.pop('post_verify_next', reverse('cabinet'))
-        if not url_has_allowed_host_and_scheme(target, {request.get_host()}, request.is_secure()):
-            target = reverse('cabinet')
-        return redirect(target)
-
     context = {
-        'form': form,
         'recovery_form': recovery_form,
         'text': text,
-        'masked_email': mask_email(record.user.email),
-        'can_verify': True,
+        'masked_email': mask_email(record.user.email) if record else '***',
+        'can_verify': record is not None,
     }
     return render(request, 'verify_email.html', context)
 
@@ -752,7 +705,6 @@ def verify_email_link_view(request, user_id, token):
         request,
         'verify_email.html',
         {
-            'form': VerificationCodeForm(),
             'recovery_form': VerificationRecoveryForm(),
             'text': text,
             'notice': text['expired'],
@@ -808,7 +760,6 @@ def resend_verification_view(request):
                 request.session['pending_verification_user_id'] = record.user_id
 
     context = {
-        'form': VerificationCodeForm(),
         'recovery_form': recovery_form,
         'text': text,
         'notice': notice,

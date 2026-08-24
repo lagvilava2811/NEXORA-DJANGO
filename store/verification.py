@@ -32,12 +32,12 @@ class VerificationStateError(Exception):
     pass
 
 
-EMAIL_SUBJECT_EN = 'Your NEXORA verification code'
-EMAIL_BODY_EN = 'Your verification code:\n\n{code}\n\nOr confirm your email with this one-time link:\n{link}\n\nThe code and link expire in {minutes} minutes.'
-EMAIL_SUBJECT_KA = 'NEXORA - \u10d4\u10da\u10e4\u10dd\u10e1\u10e2\u10d8\u10e1 \u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d8\u10e1 \u10d9\u10dd\u10d3\u10d8'
-EMAIL_BODY_KA = '\u10d7\u10e5\u10d5\u10d4\u10dc\u10d8 \u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d8\u10e1 \u10d9\u10dd\u10d3\u10d8:\n\n{code}\n\n\u10d0\u10dc \u10d3\u10d0\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d7 \u10d4\u10da\u10e4\u10dd\u10e1\u10e2\u10d0 \u10d0\u10db \u10d4\u10e0\u10d7\u10ef\u10d4\u10e0\u10d0\u10d3\u10d8 \u10d1\u10db\u10e3\u10da\u10d8\u10d7:\n{link}\n\n\u10d9\u10dd\u10d3\u10e1\u10d0 \u10d3\u10d0 \u10d1\u10db\u10e3\u10da\u10e1 \u10d5\u10d0\u10d3\u10d0 \u10d2\u10d0\u10e1\u10d3\u10d8\u10e1 {minutes} \u10ec\u10e3\u10d7\u10e8\u10d8.'
-EMAIL_SUBJECT_RU = '\u041a\u043e\u0434 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f NEXORA'
-EMAIL_BODY_RU = '\u0412\u0430\u0448 \u043a\u043e\u0434 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f:\n\n{code}\n\n\u0418\u043b\u0438 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0435 \u043f\u043e\u0447\u0442\u0443 \u043f\u043e \u044d\u0442\u043e\u0439 \u043e\u0434\u043d\u043e\u0440\u0430\u0437\u043e\u0432\u043e\u0439 \u0441\u0441\u044b\u043b\u043a\u0435:\n{link}\n\n\u041a\u043e\u0434 \u0438 \u0441\u0441\u044b\u043b\u043a\u0430 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u044e\u0442 {minutes} \u043c\u0438\u043d\u0443\u0442.'
+EMAIL_SUBJECT_EN = 'Confirm your NEXORA email'
+EMAIL_BODY_EN = 'Confirm your email with this one-time link:\n\n{link}\n\nThis link expires in {minutes} minutes. If you did not create a NEXORA account, you can safely ignore this email.'
+EMAIL_SUBJECT_KA = 'NEXORA — \u10d3\u10d0\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d7 \u10d4\u10da\u10e4\u10dd\u10e1\u10e2\u10d0'
+EMAIL_BODY_KA = '\u10d3\u10d0\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d7 \u10d7\u10e5\u10d5\u10d4\u10dc\u10d8 \u10d4\u10da\u10e4\u10dd\u10e1\u10e2\u10d0 \u10d0\u10db \u10d4\u10e0\u10d7\u10ef\u10d4\u10e0\u10d0\u10d3\u10d8 \u10d1\u10db\u10e3\u10da\u10d8\u10d7:\n\n{link}\n\n\u10d1\u10db\u10e3\u10da\u10d8 \u10db\u10dd\u10e5\u10db\u10d4\u10d3\u10d4\u10d1\u10e1 {minutes} \u10ec\u10e3\u10d7\u10d8.'
+EMAIL_SUBJECT_RU = '\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0435 email NEXORA'
+EMAIL_BODY_RU = '\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0435 \u0432\u0430\u0448\u0443 \u043f\u043e\u0447\u0442\u0443 \u043f\u043e \u044d\u0442\u043e\u0439 \u043e\u0434\u043d\u043e\u0440\u0430\u0437\u043e\u0432\u043e\u0439 \u0441\u0441\u044b\u043b\u043a\u0435:\n\n{link}\n\n\u0421\u0441\u044b\u043b\u043a\u0430 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0442 {minutes} \u043c\u0438\u043d\u0443\u0442.'
 
 
 def localized_email(language):
@@ -52,14 +52,12 @@ def localized_email(language):
 PAGE_TEXT = {
     'en': {
         'title': 'Verify your email',
-        'intro': 'Enter the six-digit code sent to your email address.',
-        'submit': 'Verify account',
-        'resend': 'Send a new code',
-        'invalid': 'The code is invalid.',
-        'expired': 'The code has expired. Request a new one.',
-        'locked': 'Too many attempts. Request a new code.',
-        'wait': 'Please wait before requesting another code.',
-        'sent': 'If the account is awaiting verification, a new code has been sent.',
+        'intro': 'Open the one-time confirmation link we sent to your email address.',
+        'link_sent': 'Your confirmation email is on its way.',
+        'email_button': 'Verify email',
+        'resend': 'Resend confirmation email',
+        'expired': 'This confirmation link has expired. Request a new one.',
+        'sent': 'If the account is awaiting verification, a new confirmation link has been sent.',
         'unavailable': 'Verification email is temporarily unavailable. Please try again.',
         'state': 'Unable to start verification for this account. Please sign in or use a different email address.',
     },
@@ -102,6 +100,24 @@ PAGE_TEXT['ka'].update({
     'state': '\u10d0\u10db \u10d0\u10dc\u10d2\u10d0\u10e0\u10d8\u10e8\u10d8\u10e1\u10d7\u10d5\u10d8\u10e1 \u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d8\u10e1 \u10d3\u10d0\u10ec\u10e7\u10d4\u10d1\u10d0 \u10d5\u10d4\u10e0 \u10db\u10dd\u10ee\u10d4\u10e0\u10ee\u10d3\u10d0. \u10e8\u10d4\u10d3\u10d8\u10d7 \u10d0\u10dc \u10d2\u10d0\u10db\u10dd\u10d8\u10e7\u10d4\u10dc\u10d4\u10d7 \u10e1\u10ee\u10d5\u10d0 \u10d4\u10da\u10e4\u10dd\u10e1\u10e2\u10d0.',
 })
 
+# Signup uses a one-time confirmation link; six-digit codes belong only to password reset.
+PAGE_TEXT['ka'].update({
+    'intro': '\u10d2\u10d0\u10ee\u10e1\u10d4\u10dc\u10d8\u10d7 \u10d4\u10da\u10e4\u10dd\u10e1\u10e2\u10d0\u10d6\u10d4 \u10d2\u10d0\u10db\u10dd\u10d2\u10d6\u10d0\u10d5\u10dc\u10d8\u10da\u10d8 \u10d4\u10e0\u10d7\u10ef\u10d4\u10e0\u10d0\u10d3\u10d8 \u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d8\u10e1 \u10d1\u10db\u10e3\u10da\u10d8.',
+    'link_sent': '\u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d8\u10e1 \u10ec\u10d4\u10e0\u10d8\u10da\u10d8 \u10d2\u10d0\u10db\u10dd\u10d2\u10d6\u10d0\u10d5\u10dc\u10d8\u10da\u10d8\u10d0.',
+    'email_button': '\u10d4\u10da\u10e4\u10dd\u10e1\u10e2\u10d8\u10e1 \u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d0',
+    'resend': '\u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d8\u10e1 \u10ec\u10d4\u10e0\u10d8\u10da\u10d8\u10e1 \u10ee\u10d4\u10da\u10d0\u10ee\u10da\u10d0 \u10d2\u10d0\u10db\u10dd\u10d2\u10d6\u10d0\u10d5\u10dc\u10d0',
+    'expired': '\u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d8\u10e1 \u10d1\u10db\u10e3\u10da\u10e1 \u10d5\u10d0\u10d3\u10d0 \u10d2\u10d0\u10e3\u10d5\u10d8\u10d3\u10d0. \u10db\u10dd\u10d8\u10d7\u10ee\u10dd\u10d5\u10d4\u10d7 \u10d0\u10ee\u10d0\u10da\u10d8 \u10d1\u10db\u10e3\u10da\u10d8.',
+    'sent': '\u10d7\u10e3 \u10d0\u10dc\u10d2\u10d0\u10e0\u10d8\u10e8\u10d8 \u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d0\u10e1 \u10d4\u10da\u10dd\u10d3\u10d4\u10d1\u10d0, \u10d0\u10ee\u10d0\u10da\u10d8 \u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d8\u10e1 \u10d1\u10db\u10e3\u10da\u10d8 \u10d2\u10d0\u10db\u10dd\u10d2\u10d6\u10d0\u10d5\u10dc\u10d8\u10da\u10d8\u10d0.',
+})
+PAGE_TEXT['ru'].update({
+    'intro': '\u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u043e\u0434\u043d\u043e\u0440\u0430\u0437\u043e\u0432\u0443\u044e \u0441\u0441\u044b\u043b\u043a\u0443 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f, \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043d\u0443\u044e \u043d\u0430 \u0432\u0430\u0448\u0443 \u043f\u043e\u0447\u0442\u0443.',
+    'link_sent': '\u041f\u0438\u0441\u044c\u043c\u043e \u0441 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435\u043c \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043e.',
+    'email_button': '\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c email',
+    'resend': '\u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u043f\u0438\u0441\u044c\u043c\u043e \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f \u043f\u043e\u0432\u0442\u043e\u0440\u043d\u043e',
+    'expired': '\u0421\u0440\u043e\u043a \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f \u0441\u0441\u044b\u043b\u043a\u0438 \u0438\u0441\u0442\u0451\u043a. \u0417\u0430\u043f\u0440\u043e\u0441\u0438\u0442\u0435 \u043d\u043e\u0432\u0443\u044e.',
+    'sent': '\u0415\u0441\u043b\u0438 \u0430\u043a\u043a\u0430\u0443\u043d\u0442 \u043e\u0436\u0438\u0434\u0430\u0435\u0442 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f, \u043d\u043e\u0432\u0430\u044f \u0441\u0441\u044b\u043b\u043a\u0430 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0430.',
+})
+
 
 def mask_email(value):
     local, separator, domain = (value or '').partition('@')
@@ -139,7 +155,6 @@ def issue_verification(user, language='en', enforce_cooldown=False, request=None
         if send_count >= max_sends:
             raise VerificationRateLimitError
 
-        code = f'{secrets.randbelow(1_000_000):06d}'
         link_token = secrets.token_urlsafe(32)
         link_path = reverse('verify_email_link', kwargs={'user_id': user.pk, 'token': link_token})
         if request is not None:
@@ -148,7 +163,7 @@ def issue_verification(user, language='en', enforce_cooldown=False, request=None
             verification_link = f"{getattr(settings, 'PUBLIC_BASE_URL', '').rstrip('/')}{link_path}"
         minutes = max(1, expiry_seconds // 60)
         subject, body_template = localized_email(language)
-        message = body_template.format(code=code, link=verification_link, minutes=minutes)
+        message = body_template.format(link=verification_link, minutes=minutes)
         body = render_to_string('email/verification_code.txt', {'message': message})
         html_body = render_to_string(
             'email/verification_code.html',
@@ -156,6 +171,7 @@ def issue_verification(user, language='en', enforce_cooldown=False, request=None
                 'message': message,
                 'language': language,
                 'verification_link': verification_link,
+                'email_button': localized_page_text(language)['email_button'],
             },
         )
         try:
@@ -173,7 +189,8 @@ def issue_verification(user, language='en', enforce_cooldown=False, request=None
         if sent != 1:
             raise VerificationDeliveryError
 
-        record.code_digest = make_password(code)
+        # Email confirmation is link-only. Password reset codes are handled separately.
+        record.code_digest = ''
         record.link_token_digest = make_password(link_token)
         record.expires_at = now + timedelta(seconds=expiry_seconds)
         record.resend_available_at = now + timedelta(seconds=cooldown_seconds)
