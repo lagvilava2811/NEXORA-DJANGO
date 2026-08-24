@@ -33,5 +33,19 @@
   root.addEventListener('mouseleave', restart);
   root.addEventListener('focusin', () => window.clearInterval(timer));
   root.addEventListener('focusout', (event) => { if (!root.contains(event.relatedTarget)) restart(); });
+  const stage = root.querySelector('[data-editions-stage]');
+  if (stage && !reduced && window.matchMedia('(pointer: fine)').matches) {
+    stage.addEventListener('pointermove', (event) => {
+      const rect = stage.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width - .5) * 18;
+      const y = ((event.clientY - rect.top) / rect.height - .5) * 14;
+      stage.style.setProperty('--edition-x', `${x}px`);
+      stage.style.setProperty('--edition-y', `${y}px`);
+    });
+    stage.addEventListener('pointerleave', () => {
+      stage.style.setProperty('--edition-x', '0px');
+      stage.style.setProperty('--edition-y', '0px');
+    });
+  }
   restart();
 })();
