@@ -62,6 +62,16 @@ class PasswordResetCodeFlowTests(TestCase):
         self.assertContains(follow_up, "Enter the six-digit code", status_code=200)
         self.assertContains(follow_up, "id_code", status_code=200)
 
+    def test_reset_code_screen_uses_a_compact_responsive_verification_panel(self):
+        self._request_code()
+
+        response = self.client.get(reverse("password_reset_done"))
+
+        self.assertContains(response, 'class="auth-section reset-flow"')
+        self.assertContains(response, 'class="reset-card auth-card"')
+        self.assertContains(response, 'class="reset-code-input"')
+        self.assertContains(response, 'class="reset-resend"')
+
     def test_correct_code_unlocks_password_change_and_invalidates_code_after_use(self):
         self._request_code()
         code = self._extract_code()
