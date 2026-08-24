@@ -225,7 +225,9 @@ class PasswordResetRequestForm(AccessibleFormMixin, forms.Form):
 
 
 class PasswordResetCodeForm(VerificationCodeForm):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['code'].widget.attrs['class'] = 'reset-code-input'
 
 
 class PasswordResetSetPasswordForm(AccessibleFormMixin, SetPasswordForm):

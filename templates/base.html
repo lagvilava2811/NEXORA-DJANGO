@@ -25,6 +25,7 @@
     <link rel="stylesheet" href="{% static 'premium.css' %}?v=20260718-premium-polish">
     <link rel="stylesheet" href="{% static 'variant-picker.css' %}?v=20260714-variants">
     <link rel="stylesheet" href="{% static 'page-transitions.css' %}?v=20260820-nav-flow">
+    {% block extra_head %}{% endblock %}
     <script src="{% static 'store.js' %}?v=20260714-variants" defer></script>
     <script src="{% static 'premium.js' %}?v=20260718-premium-polish" defer></script>
     <script src="{% static 'page-transitions.js' %}?v=20260820-nav-flow" defer></script>
