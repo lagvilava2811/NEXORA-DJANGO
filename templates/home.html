@@ -104,19 +104,34 @@
     </div>
 </section>
 
-<section id="catalogue" class="nexora-collector-wall" aria-labelledby="collector-wall-title" data-collector-wall>
-    <div class="nexora-collector-wall-intro">
-        <h2 id="collector-wall-title">{% if request.LANGUAGE_CODE == 'ka' %}შექმენი შენი საკუთარი კოლექცია.{% elif request.LANGUAGE_CODE == 'ru' %}Соберите свою коллекцию.{% else %}Build your own collection.{% endif %}</h2>
-        <a href="{% url 'shop' %}">{{ copy.view_all_products }} <span aria-hidden="true">→</span></a>
+<section id="catalogue" class="nexora-editions" aria-labelledby="editions-title" data-editions>
+    <div class="nexora-editions-head">
+        <p class="nexora-editions-eyebrow">NEXORA / 03</p>
+        <h2 id="editions-title">{% if request.LANGUAGE_CODE == 'ka' %}აირჩიე შენი რიტმი.{% elif request.LANGUAGE_CODE == 'ru' %}Выберите свой ритм.{% else %}Choose your rhythm.{% endif %}</h2>
+        <p>{% if request.LANGUAGE_CODE == 'ka' %}სამი სამყაროსთვის შექმნილი ტექნიკა — ერთი მოძრაობით მოათვალიერე კოლექცია.{% elif request.LANGUAGE_CODE == 'ru' %}Технологии для трёх разных миров — исследуйте коллекцию одним движением.{% else %}Technology for three different worlds — explore the collection in one move.{% endif %}</p>
     </div>
-    <div class="nexora-collector-grid">
-        {% for product in products|slice:':12' %}
-        <a class="nexora-collector-tile nexora-collector-tile-{{ forloop.counter }}" href="{{ product.get_absolute_url }}" aria-label="{{ product.localized_name }}">
-            <span class="nexora-collector-tile-count" aria-hidden="true">{{ forloop.counter|stringformat:'02d' }}</span>
-            <img src="{{ product.display_image }}" alt="{{ product.localized_name }}" loading="lazy" decoding="async" width="680" height="680">
-            <span class="nexora-collector-tile-overlay"><strong>{{ product.localized_name }}</strong><small>{{ product.price|floatformat:0|intcomma }} {{ copy.currency_symbol }}</small><em>{% if request.LANGUAGE_CODE == 'ka' %}გახსნა{% elif request.LANGUAGE_CODE == 'ru' %}Открыть{% else %}Open object{% endif %} <i aria-hidden="true">↗</i></em></span>
-        </a>
-        {% empty %}<p>{{ copy.no_results }}</p>{% endfor %}
+    <div class="nexora-editions-stage" data-editions-stage>
+        <div class="nexora-editions-track" data-editions-track>
+            <article class="nexora-edition is-active" data-edition aria-hidden="false">
+                <img src="{% static 'editorial/nexora-smartphone-edition.png' %}" alt="{% if request.LANGUAGE_CODE == 'ka' %}პრემიუმ სმარტფონი მუქ სტუდიაში{% elif request.LANGUAGE_CODE == 'ru' %}Премиальный смартфон в тёмной студии{% else %}Premium smartphone in a dark studio{% endif %}" width="2048" height="2048">
+                <div class="nexora-edition-copy"><span>01 / MOBILE</span><h3>{% if request.LANGUAGE_CODE == 'ka' %}ყოველი კადრი.<br>შენი წესებით.{% elif request.LANGUAGE_CODE == 'ru' %}Каждый кадр.<br>По вашим правилам.{% else %}Every frame.<br>Your terms.{% endif %}</h3><a href="{% url 'shop' %}?category=smartphones">{% if request.LANGUAGE_CODE == 'ka' %}სმარტფონების ნახვა{% elif request.LANGUAGE_CODE == 'ru' %}Смотреть смартфоны{% else %}Shop smartphones{% endif %} <span aria-hidden="true">↗</span></a></div>
+            </article>
+            <article class="nexora-edition" data-edition aria-hidden="true">
+                <img src="{% static 'editorial/nexora-laptop-edition.png' %}" alt="{% if request.LANGUAGE_CODE == 'ka' %}პრემიუმ ლეპტოპი მუქ სტუდიაში{% elif request.LANGUAGE_CODE == 'ru' %}Премиальный ноутбук в тёмной студии{% else %}Premium laptop in a dark studio{% endif %}" width="2048" height="2048" loading="lazy">
+                <div class="nexora-edition-copy"><span>02 / COMPUTE</span><h3>{% if request.LANGUAGE_CODE == 'ka' %}შენი იდეები.<br>სრულ სიჩქარეზე.{% elif request.LANGUAGE_CODE == 'ru' %}Ваши идеи.<br>На полной скорости.{% else %}Your ideas.<br>At full speed.{% endif %}</h3><a href="{% url 'shop' %}?category=laptops">{% if request.LANGUAGE_CODE == 'ka' %}ლეპტოპების ნახვა{% elif request.LANGUAGE_CODE == 'ru' %}Смотреть ноутбуки{% else %}Shop laptops{% endif %} <span aria-hidden="true">↗</span></a></div>
+            </article>
+            <article class="nexora-edition" data-edition aria-hidden="true">
+                <img src="{% static 'editorial/nexora-audio-edition.png' %}" alt="{% if request.LANGUAGE_CODE == 'ka' %}პრემიუმ ყურსასმენები მუქ სტუდიაში{% elif request.LANGUAGE_CODE == 'ru' %}Премиальные наушники в тёмной студии{% else %}Premium headphones in a dark studio{% endif %}" width="2048" height="2048" loading="lazy">
+                <div class="nexora-edition-copy"><span>03 / SOUND</span><h3>{% if request.LANGUAGE_CODE == 'ka' %}შენი სივრცე.<br>სხვა ხმაზე.{% elif request.LANGUAGE_CODE == 'ru' %}Ваше пространство.<br>На другой частоте.{% else %}Your space.<br>A different frequency.{% endif %}</h3><a href="{% url 'shop' %}?category=audio">{% if request.LANGUAGE_CODE == 'ka' %}აუდიოს ნახვა{% elif request.LANGUAGE_CODE == 'ru' %}Смотреть аудио{% else %}Shop audio{% endif %} <span aria-hidden="true">↗</span></a></div>
+            </article>
+        </div>
+        <div class="nexora-editions-controls" aria-label="{% if request.LANGUAGE_CODE == 'ka' %}კოლექციის ნავიგაცია{% elif request.LANGUAGE_CODE == 'ru' %}Навигация по коллекции{% else %}Collection navigation{% endif %}">
+            <button type="button" data-editions-prev aria-label="{% if request.LANGUAGE_CODE == 'ka' %}წინა კოლექცია{% elif request.LANGUAGE_CODE == 'ru' %}Предыдущая коллекция{% else %}Previous collection{% endif %}">←</button>
+            <div class="nexora-editions-dots" role="tablist" aria-label="{% if request.LANGUAGE_CODE == 'ka' %}კოლექციები{% elif request.LANGUAGE_CODE == 'ru' %}Коллекции{% else %}Collections{% endif %}">
+                <button type="button" class="is-active" data-editions-dot aria-label="01" aria-selected="true"></button><button type="button" data-editions-dot aria-label="02" aria-selected="false"></button><button type="button" data-editions-dot aria-label="03" aria-selected="false"></button>
+            </div>
+            <button type="button" data-editions-next aria-label="{% if request.LANGUAGE_CODE == 'ka' %}შემდეგი კოლექცია{% elif request.LANGUAGE_CODE == 'ru' %}Следующая коллекция{% else %}Next collection{% endif %}">→</button>
+        </div>
     </div>
 </section>
 {% endblock %}
@@ -125,4 +140,5 @@
 <link rel="stylesheet" href="{% static 'nexora-vault.css' %}">
 <script src="{% static 'home-experience-loader.js' %}" defer></script>
 <script src="{% static 'nexora-vault.js' %}" defer></script>
+<script src="{% static 'nexora-collections.js' %}" defer></script>
 {% endblock %}
