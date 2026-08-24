@@ -25,6 +25,8 @@
     <link rel="stylesheet" href="{% static 'premium.css' %}?v=20260718-premium-polish">
     <link rel="stylesheet" href="{% static 'variant-picker.css' %}?v=20260714-variants">
     <link rel="stylesheet" href="{% static 'page-transitions.css' %}?v=20260820-nav-flow">
+    <link rel="stylesheet" href="{% static 'premium-footer.css' %}?v=20260824">
+    <link rel="stylesheet" href="{% static 'georgian-type.css' %}?v=20260824-hero-type">
     {% block extra_head %}{% endblock %}
     <script src="{% static 'store.js' %}?v=20260714-variants" defer></script>
     <script src="{% static 'premium.js' %}?v=20260718-premium-polish" defer></script>
@@ -120,17 +122,40 @@
 
     <main id="main-content" tabindex="-1" data-page-fade>{% block content %}{% endblock %}</main>
 
-    <footer class="site-footer" data-page-fade>
-        <div><a class="brand" href="{% url 'home' %}"><span class="brand-mark" aria-hidden="true">N</span><span class="brand-word">NEXORA</span></a><p>{{ copy.footer_tagline }}</p></div>
-        <nav class="footer-links" aria-label="Footer">
-            <a href="{% url 'shop' %}">{{ copy.all_objects }}</a>
-            <a href="{% url 'checkout' %}">{{ copy.delivery_returns }}</a>
-            <a href="{% url 'privacy' %}">{{ copy.privacy_notice }}</a>
-            <a href="{% url 'terms' %}">{{ copy.terms_notice }}</a>
-            <a href="{% url 'cookies' %}">{{ copy.cookie_notice }}</a>
-            {% if support_email %}<a href="mailto:{{ support_email }}">{{ copy.support }}</a>{% endif %}
-        </nav>
-        <p class="mono">{{ copy.footer_location }}<br>© 2026 NEXORA</p>
+    <footer class="site-footer premium-footer" data-page-fade>
+        <div class="premium-footer__grid">
+            <section class="premium-footer__brand" aria-label="NEXORA">
+                <a class="brand" href="{% url 'home' %}" aria-label="{{ copy.home_label }}"><span class="brand-mark" aria-hidden="true">N</span><span class="brand-word">NEXORA</span></a>
+                <p>{{ copy.footer_tagline }}</p>
+                {% if social_links %}
+                    <nav class="footer-social" aria-label="NEXORA social media">
+                        {% for label, url in social_links %}{% if url %}<a href="{{ url }}" target="_blank" rel="noopener noreferrer" aria-label="NEXORA on {{ label }}"><span aria-hidden="true">{% if label == 'Instagram' %}IG{% else %}{{ label|slice:':1' }}{% endif %}</span><b>{{ label }}</b></a>{% endif %}{% endfor %}
+                    </nav>
+                {% endif %}
+            </section>
+            <section class="premium-footer__column">
+                <h2>{% if request.LANGUAGE_CODE == 'ka' %}რატომ NEXORA{% elif request.LANGUAGE_CODE == 'ru' %}Почему NEXORA{% else %}Why NEXORA{% endif %}</h2>
+                <ul class="footer-assurances">
+                    <li>{% if request.LANGUAGE_CODE == 'ka' %}დადასტურებული პროდუქტის მედია{% elif request.LANGUAGE_CODE == 'ru' %}Проверенные изображения товаров{% else %}Verified product media{% endif %}</li>
+                    <li>{% if request.LANGUAGE_CODE == 'ka' %}გამჭვირვალე ინფორმაცია{% elif request.LANGUAGE_CODE == 'ru' %}Прозрачная информация{% else %}Clear product information{% endif %}</li>
+                    <li>{% if request.LANGUAGE_CODE == 'ka' %}მომხმარებლის მხარდაჭერა{% elif request.LANGUAGE_CODE == 'ru' %}Поддержка клиентов{% else %}Customer support{% endif %}</li>
+                </ul>
+            </section>
+            <nav class="premium-footer__column" aria-label="Footer navigation">
+                <h2>{% if request.LANGUAGE_CODE == 'ka' %}ნავიგაცია{% elif request.LANGUAGE_CODE == 'ru' %}Навигация{% else %}Explore{% endif %}</h2>
+                <a href="{% url 'shop' %}">{{ copy.all_objects }}</a>
+                {% for category in global_categories|slice:':3' %}<a href="{% url 'shop' %}?category={{ category.slug }}">{{ category.localized_name }}</a>{% endfor %}
+                <a href="{% url 'privacy' %}">{{ copy.privacy_notice }}</a>
+            </nav>
+            <section class="premium-footer__column footer-contact">
+                <h2>{% if request.LANGUAGE_CODE == 'ka' %}კონტაქტი{% elif request.LANGUAGE_CODE == 'ru' %}Контакты{% else %}Contact{% endif %}</h2>
+                {% if legal_address %}<p>{{ legal_address }}</p>{% else %}<p>{{ copy.footer_location }}</p>{% endif %}
+                {% if support_phone %}<a href="tel:{{ support_phone|cut:' ' }}">{{ support_phone }}</a>{% endif %}
+                {% if support_email %}<a href="mailto:{{ support_email }}">{{ support_email }}</a>{% endif %}
+                <a href="{% url 'terms' %}">{{ copy.terms_notice }}</a>
+            </section>
+        </div>
+        <div class="premium-footer__bottom"><span>© 2026 NEXORA</span><span>{{ copy.footer_location }}</span><a href="{% url 'cookies' %}">{{ copy.cookie_notice }}</a></div>
     </footer>
 
     <aside class="guide" aria-label="{{ copy.guide_label }}">

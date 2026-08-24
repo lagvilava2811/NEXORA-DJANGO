@@ -433,6 +433,18 @@ def global_context(request):
         "global_products_count": Product.objects.published().count(),
         "csp_nonce": getattr(request, "csp_nonce", ""),
         "support_email": getattr(settings, "NEXORA_SUPPORT_EMAIL", ""),
+        "support_phone": getattr(settings, "NEXORA_PHONE", ""),
+        "legal_address": getattr(settings, "NEXORA_LEGAL_ADDRESS", ""),
+        "social_links": [
+            (label, url)
+            for label, url in (
+                ("Facebook", getattr(settings, "NEXORA_FACEBOOK_URL", "")),
+                ("Instagram", getattr(settings, "NEXORA_INSTAGRAM_URL", "")),
+                ("TikTok", getattr(settings, "NEXORA_TIKTOK_URL", "")),
+                ("X", getattr(settings, "NEXORA_X_URL", "")),
+            )
+            if url
+        ],
     }
 
 ACCOUNT_COPIES = {

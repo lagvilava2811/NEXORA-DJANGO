@@ -131,7 +131,7 @@ class PasswordResetCodeFlowTests(TestCase):
         first_digest = record.code_digest
 
         too_soon = self.client.post(reverse("password_reset_resend"))
-        self.assertContains(too_soon, "If an account exists", status_code=200)
+        self.assertContains(too_soon, "Please wait", status_code=200)
         self.assertEqual(len(mail.outbox), 1)
 
         record.resend_available_at = timezone.now() - timedelta(seconds=1)

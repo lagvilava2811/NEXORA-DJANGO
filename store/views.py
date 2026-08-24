@@ -20,7 +20,7 @@ from django.utils.translation import get_language
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .context_processors import COPIES
-from .gemini import gemini_guide_reply
+from .gemini import guide_reply
 from .forms import (
     AddressForm,
     CheckoutForm,
@@ -501,6 +501,7 @@ def password_reset_code_view(request):
 def password_reset_resend_view(request):
     text = localized_password_reset_text(get_language())
     record = _password_reset_record(request)
+    notice = text["sent"]
     if record is not None:
         try:
             issue_password_reset_code(
@@ -508,16 +509,16 @@ def password_reset_resend_view(request):
                 get_language(),
                 enforce_cooldown=True,
             )
-        except (
-            PasswordResetCooldownError,
-            PasswordResetDeliveryError,
-            PasswordResetRateLimitError,
-        ):
-            pass
+        except (PasswordResetCooldownError, PasswordResetRateLimitError):
+            # Do not claim that a new email was sent when the active code is
+            # deliberately still within its cooldown window.
+            notice = text["wait"]
+        except PasswordResetDeliveryError:
+            notice = text["unavailable"]
     return render(
         request,
         "registration/password_reset_done.html",
-        {"form": PasswordResetCodeForm(), "text": text, "notice": text["sent"]},
+        {"form": PasswordResetCodeForm(), "text": text, "notice": notice},
     )
 
 
@@ -621,8 +622,10 @@ def signup_view(request):
                     issue_verification(user, get_language(), request=request)
             except IntegrityError:
                 form.add_error('email', form_text()['email_in_use'])
-            except (VerificationDeliveryError, VerificationStateError):
+            except VerificationDeliveryError:
                 form.add_error(None, text['unavailable'])
+            except VerificationStateError:
+                form.add_error(None, text['state'])
             else:
                 request.session['pending_verification_user_id'] = user.pk
                 request.session['post_verify_next'] = _safe_next(request, 'cabinet')
@@ -1145,7 +1148,7 @@ def guide(request):
     else:
         matched = products if categories or budget else Product.objects.none()
     matches = list(matched.order_by("-rating", "price", "name")[:5])
-    ai_reply = gemini_guide_reply(
+    ai_reply = guide_reply(
         message=message,
         language=_guide_response_language(message, language),
         products=matches,

@@ -145,6 +145,11 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "NEXORA <noreply@nexora.exa
 NEXORA_LEGAL_NAME = os.getenv("NEXORA_LEGAL_NAME", "").strip()
 NEXORA_LEGAL_ADDRESS = os.getenv("NEXORA_LEGAL_ADDRESS", "").strip()
 NEXORA_SUPPORT_EMAIL = os.getenv("NEXORA_SUPPORT_EMAIL", "").strip()
+NEXORA_PHONE = os.getenv("NEXORA_PHONE", "").strip()
+NEXORA_FACEBOOK_URL = os.getenv("NEXORA_FACEBOOK_URL", "").strip()
+NEXORA_X_URL = os.getenv("NEXORA_X_URL", "").strip()
+NEXORA_INSTAGRAM_URL = os.getenv("NEXORA_INSTAGRAM_URL", "").strip()
+NEXORA_TIKTOK_URL = os.getenv("NEXORA_TIKTOK_URL", "").strip()
 DJANGO_CACHE_URL = os.getenv('DJANGO_CACHE_URL', '').strip()
 if DJANGO_CACHE_URL:
     CACHES = {
@@ -180,6 +185,16 @@ GEMINI_CONNECT_TIMEOUT = float(os.getenv('GEMINI_CONNECT_TIMEOUT', '2'))
 GEMINI_READ_TIMEOUT = float(os.getenv('GEMINI_READ_TIMEOUT', '6'))
 GEMINI_MAX_ATTEMPTS = int(os.getenv('GEMINI_MAX_ATTEMPTS', '2'))
 GEMINI_FAILURE_COOLDOWN_SECONDS = int(os.getenv('GEMINI_FAILURE_COOLDOWN_SECONDS', '20'))
+# The shopping guide can be backed by Gemini or Meta Model API. Credentials
+# stay in local .env / deployment secrets and never belong in source control.
+NEXORA_AI_PROVIDER = os.getenv('NEXORA_AI_PROVIDER', 'gemini').strip().lower()
+META_MODEL_API_KEY = os.getenv('META_MODEL_API_KEY', '').strip()
+META_MODEL = os.getenv('META_MODEL', 'muse-spark-1.1').strip()
+META_MODEL_ENABLED = os.getenv('META_MODEL_ENABLED', 'False').lower() in {'1', 'true', 'yes'}
+META_MODEL_CONNECT_TIMEOUT = float(os.getenv('META_MODEL_CONNECT_TIMEOUT', '2'))
+META_MODEL_READ_TIMEOUT = float(os.getenv('META_MODEL_READ_TIMEOUT', '8'))
+META_MODEL_MAX_ATTEMPTS = int(os.getenv('META_MODEL_MAX_ATTEMPTS', '2'))
+META_MODEL_FAILURE_COOLDOWN_SECONDS = int(os.getenv('META_MODEL_FAILURE_COOLDOWN_SECONDS', '20'))
 EMAIL_VERIFICATION_EXPIRY_SECONDS = int(os.getenv('EMAIL_VERIFICATION_EXPIRY_SECONDS', '600'))
 EMAIL_VERIFICATION_MAX_ATTEMPTS = int(os.getenv('EMAIL_VERIFICATION_MAX_ATTEMPTS', '5'))
 EMAIL_VERIFICATION_RESEND_COOLDOWN = int(os.getenv('EMAIL_VERIFICATION_RESEND_COOLDOWN', '60'))

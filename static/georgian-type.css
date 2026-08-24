@@ -1,0 +1,51 @@
+/* Georgian needs its own typographic voice. Do not inherit the Latin-only display face. */
+html[lang="ka"] {
+    --font-ka: "Noto Sans Georgian", "Noto Sans Georgian UI", "Segoe UI", Arial, sans-serif;
+}
+html[lang="ka"] body,
+html[lang="ka"] input,
+html[lang="ka"] textarea,
+html[lang="ka"] select,
+html[lang="ka"] button {
+    font-family: var(--font-ka) !important;
+    font-feature-settings: "kern" 1, "liga" 1;
+}
+html[lang="ka"] h1,
+html[lang="ka"] h2,
+html[lang="ka"] h3,
+html[lang="ka"] .hero-title,
+html[lang="ka"] .morph-title,
+html[lang="ka"] .nexora-edition__title,
+html[lang="ka"] .section-title {
+    font-family: var(--font-ka) !important;
+    font-weight: 700 !important;
+    letter-spacing: -.038em !important;
+    line-height: 1.06 !important;
+    font-variant-ligatures: common-ligatures;
+}
+/* The English hero uses a deliberately extreme display scale. Georgian's wider
+   letterforms need a calmer desktop scale and more line height to stay elegant. */
+html[lang="ka"] .precision-hero-copy { max-width: 50rem; }
+html[lang="ka"] .precision-hero-copy h1 {
+    max-width: 12ch !important;
+    font-family: var(--font-ka) !important;
+    font-size: clamp(2.8rem, 5.15vw, 6rem) !important;
+    font-weight: 700 !important;
+    letter-spacing: -.045em !important;
+    line-height: 1.07 !important;
+    text-wrap: balance;
+}
+html[lang="ka"] .precision-hero-copy h1 em { font-style: normal; }
+html[lang="ka"] .hero-title,
+html[lang="ka"] .morph-title { max-width: 11.5ch; }
+html[lang="ka"] .eyebrow,
+html[lang="ka"] .mono,
+html[lang="ka"] .brand-descriptor { letter-spacing: .035em; }
+@media (max-width: 48rem) {
+    html[lang="ka"] h1,
+    html[lang="ka"] .hero-title,
+    html[lang="ka"] .morph-title { letter-spacing: -.025em !important; line-height: 1.1 !important; }
+}
+@media (max-width: 42rem) {
+    html[lang="ka"] .precision-hero-copy h1 { max-width: 11ch !important; font-size: clamp(2.55rem, 11.5vw, 4rem) !important; line-height: 1.1 !important; }
+}
