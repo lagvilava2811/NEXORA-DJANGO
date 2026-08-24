@@ -72,6 +72,13 @@ class PasswordResetCodeFlowTests(TestCase):
         self.assertContains(response, 'class="reset-code-input"')
         self.assertContains(response, 'class="reset-resend"')
 
+    def test_reset_request_screen_uses_the_same_compact_recovery_layout(self):
+        response = self.client.get(reverse("password_reset"))
+
+        self.assertContains(response, 'class="auth-section reset-flow"')
+        self.assertContains(response, 'class="reset-card auth-card"')
+        self.assertContains(response, 'class="reset-request-form"')
+
     def test_correct_code_unlocks_password_change_and_invalidates_code_after_use(self):
         self._request_code()
         code = self._extract_code()
