@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}{{ page.title }} | NEXORA{% endblock %}
+{% block meta_description %}{{ page.intro }}{% endblock %}
+{% block content %}
+<article class="commerce-shell legal-page" aria-labelledby="legal-title">
+    <p class="eyebrow">NEXORA / {{ document|upper }}</p>
+    <h1 id="legal-title">{{ page.title }}</h1>
+    <p class="lead">{{ page.intro }}</p>
+    <div class="legal-sections">
+        {% for heading, body in page.sections %}
+            <section>
+                <h2>{{ heading }}</h2>
+                <p>{{ body }}</p>
+            </section>
+        {% endfor %}
+    </div>
+    {% if legal_name or legal_address or support_email %}
+        <section class="legal-contact" aria-labelledby="legal-contact-title">
+            <h2 id="legal-contact-title">Contact</h2>
+            {% if legal_name %}<p>{{ legal_name }}</p>{% endif %}
+            {% if legal_address %}<p>{{ legal_address }}</p>{% endif %}
+            {% if support_email %}<p><a href="mailto:{{ support_email }}">{{ support_email }}</a></p>{% endif %}
+        </section>
+    {% endif %}
+    <p class="mono">Last updated: 2026-08-24</p>
+</article>
+{% endblock %}

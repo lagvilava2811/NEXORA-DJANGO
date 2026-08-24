@@ -6,5 +6,6 @@ class StoreConfig(AppConfig):
     name = 'store'
 
     def ready(self):
+        from . import cart_signals  # noqa: F401
         from . import checks  # noqa: F401
         from . import rating_signals  # noqa: F401

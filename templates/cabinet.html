@@ -3,12 +3,12 @@
 {% block title %}{{ copy.account }} | NEXORA{% endblock %}
 {% block robots %}noindex,nofollow{% endblock %}
 {% block content %}
-<section class="cabinet-section" aria-labelledby="cabinet-title">
+<section class="cabinet-section commerce-shell cabinet-flow" aria-labelledby="cabinet-title">
     <p class="eyebrow">{{ copy.account_eyebrow }}</p>
     <h1 id="cabinet-title">{{ user.get_full_name|default:user.username }}</h1>
 
     <div class="cabinet-grid">
-        <section class="cabinet-panel" aria-labelledby="orders-title">
+        <section class="cabinet-panel cabinet-orders" aria-labelledby="orders-title">
             <h2 id="orders-title">{{ copy.orders_title }}</h2>
             <div class="cabinet-list">
                 {% for order in orders %}
@@ -20,7 +20,7 @@
             </div>
         </section>
 
-        <section class="cabinet-panel" aria-labelledby="addresses-title">
+        <section class="cabinet-panel cabinet-addresses" aria-labelledby="addresses-title">
             <h2 id="addresses-title">{{ copy.addresses_title }}</h2>
             <div class="cabinet-list">
                 {% for address in addresses %}
@@ -47,7 +47,7 @@
             </form>
         </section>
 
-        <section class="cabinet-panel" aria-labelledby="wishlist-title">
+        <section class="cabinet-panel cabinet-wishlist" aria-labelledby="wishlist-title">
             <h2 id="wishlist-title">{{ copy.wishlist_title }}</h2>
             <div class="cabinet-list">
                 {% for item in wishlist %}
@@ -63,13 +63,29 @@
             </div>
         </section>
 
-        <section class="cabinet-panel" aria-labelledby="service-title">
+        <section class="cabinet-panel cabinet-service" aria-labelledby="service-title">
             <h2 id="service-title">{{ copy.service_title }}</h2>
             <div class="cabinet-list">
                 {% for item in returns %}<article><strong>{{ copy.return_label }} #{{ item.id }}</strong> · {{ item.status|localized_status }}<p>{{ item.description }}</p></article>{% endfor %}
                 {% for claim in warranty_claims %}<article><strong>{{ copy.warranty_claim_label }} #{{ claim.id }}</strong> · {{ claim.status|localized_status }}<p>{{ claim.description }}</p></article>{% endfor %}
                 {% if not returns and not warranty_claims %}<p>{{ copy.no_service_requests }}</p>{% endif %}
             </div>
+        </section>
+
+        <section class="cabinet-panel cabinet-privacy" aria-labelledby="privacy-controls-title">
+            <h2 id="privacy-controls-title">{{ copy.privacy_controls }}</h2>
+            <p><a class="button" href="{% url 'account_data_export' %}">{{ copy.download_data }}</a></p>
+            {% if deletion_request.status == 'pending' %}
+                <p role="status">{{ copy.deletion_pending }}</p>
+                <form action="{% url 'cancel_account_deletion' %}" method="post">
+                    {% csrf_token %}<button class="text-button" type="submit">{{ copy.cancel_deletion }}</button>
+                </form>
+            {% elif deletion_request.status != 'completed' %}
+                <form action="{% url 'request_account_deletion' %}" method="post">
+                    {% csrf_token %}<button class="text-button" type="submit">{{ copy.request_deletion }}</button>
+                </form>
+            {% endif %}
+            <p><a href="{% url 'privacy' %}">{{ copy.privacy_notice }}</a></p>
         </section>
     </div>
 </section>

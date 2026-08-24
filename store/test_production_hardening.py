@@ -4,11 +4,41 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core import mail
-from django.test import Client, TestCase, override_settings
+from django.test import Client, RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+from django.utils import translation
 
 from .models import Coupon, Order
 from .services import valid_coupon
+from .security import request_ip
+
+
+class TrustedProxyIpTests(SimpleTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    @override_settings(TRUSTED_PROXY_IPS=())
+    def test_forwarded_header_is_ignored_without_a_trusted_proxy(self):
+        request = self.factory.get(
+            '/', REMOTE_ADDR='203.0.113.10', HTTP_X_FORWARDED_FOR='198.51.100.20',
+        )
+        self.assertEqual(request_ip(request), '203.0.113.10')
+
+    @override_settings(TRUSTED_PROXY_IPS=('10.0.0.0/8', '2001:db8::/32'))
+    def test_nearest_untrusted_address_is_selected_behind_allowlisted_proxies(self):
+        request = self.factory.get(
+            '/',
+            REMOTE_ADDR='10.0.0.9',
+            HTTP_X_FORWARDED_FOR='192.0.2.44, 198.51.100.8, 10.0.0.8',
+        )
+        self.assertEqual(request_ip(request), '198.51.100.8')
+
+    @override_settings(TRUSTED_PROXY_IPS=('10.0.0.0/8',))
+    def test_malformed_forwarded_values_are_discarded(self):
+        request = self.factory.get(
+            '/', REMOTE_ADDR='10.0.0.9', HTTP_X_FORWARDED_FOR='attacker, 192.0.2.55',
+        )
+        self.assertEqual(request_ip(request), '192.0.2.55')
 
 
 class AuthenticationHardeningTests(TestCase):
@@ -32,7 +62,8 @@ class AuthenticationHardeningTests(TestCase):
         self.assertEqual(response.status_code, 429)
 
     def test_password_reset_routes_are_available(self):
-        response = self.client.get(reverse("password_reset"))
+        with translation.override("en"):
+            response = self.client.get(reverse("password_reset"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Reset your password")
 
@@ -44,11 +75,14 @@ class AuthenticationHardeningTests(TestCase):
                 self.assertContains(response, "aria-pressed=\"false\"")
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-    def test_password_reset_sends_a_signed_link_without_account_enumeration(self):
-        response = self.client.post(reverse("password_reset"), {"email": self.user.email})
-        self.assertRedirects(response, reverse("password_reset_done"))
+    def test_password_reset_sends_a_six_digit_code_without_account_enumeration(self):
+        with translation.override("en"):
+            response = self.client.post(reverse("password_reset"), {"email": self.user.email})
+            expected = reverse("password_reset_done")
+        self.assertRedirects(response, expected)
         self.assertEqual(len(mail.outbox), 1)
-        self.assertIn("/reset/", mail.outbox[0].body)
+        self.assertRegex(mail.outbox[0].body, r"\b\d{6}\b")
+        self.assertNotIn("/reset/", mail.outbox[0].body)
 
 
 class CommerceAndUploadHardeningTests(TestCase):

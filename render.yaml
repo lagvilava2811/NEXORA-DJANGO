@@ -5,7 +5,7 @@ services:
     plan: free
     branch: main
     autoDeployTrigger: commit
-    healthCheckPath: /en/
+    healthCheckPath: /health/
     envVars:
       - key: DJANGO_DEBUG
         value: "False"

@@ -6,11 +6,20 @@ import time
 
 import requests
 from django.conf import settings
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
 _MODEL_PATTERN = re.compile(r"^[A-Za-z0-9.-]+$")
 _API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+
+def _bounded_setting(name, default, minimum, maximum):
+    try:
+        value = float(getattr(settings, name, default))
+    except (TypeError, ValueError):
+        value = float(default)
+    return max(minimum, min(maximum, value))
 
 
 def _catalog_context(products):
@@ -38,6 +47,15 @@ def gemini_guide_reply(*, message, language, products):
         logger.error("Invalid Gemini model configuration")
         return None
 
+    circuit_key = f"nexora:gemini:unavailable:{model}"
+    if cache.get(circuit_key):
+        return None
+
+    connect_timeout = _bounded_setting("GEMINI_CONNECT_TIMEOUT", 2, 0.5, 5)
+    read_timeout = _bounded_setting("GEMINI_READ_TIMEOUT", 6, 1, 10)
+    attempts = int(_bounded_setting("GEMINI_MAX_ATTEMPTS", 2, 1, 2))
+    cooldown = int(_bounded_setting("GEMINI_FAILURE_COOLDOWN_SECONDS", 20, 5, 120))
+
     system_instruction = (
         "You are NEXORA GUIDE, a concise shopping assistant for a Georgian technology store. "
         f"Reply in this language code: {language}. Recommend only products in the supplied NEXORA catalog context. "
@@ -52,25 +70,27 @@ def gemini_guide_reply(*, message, language, products):
         "contents": [{"role": "user", "parts": [{"text": f"Shopper question:\n{message}\n\nCatalog context:\n{_catalog_context(products)}"}]}],
         "generationConfig": {"temperature": 0.25, "maxOutputTokens": 320},
     }
-    for attempt in range(2):
+    for attempt in range(attempts):
         try:
             response = requests.post(
                 _API_URL.format(model=model),
                 headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
                 json=payload,
-                timeout=(3.05, 15),
+                timeout=(connect_timeout, read_timeout),
             )
-            if response.status_code in {429, 500, 502, 503, 504} and attempt == 0:
-                time.sleep(0.4)
+            if response.status_code in {429, 500, 502, 503, 504} and attempt + 1 < attempts:
+                time.sleep(0.15)
                 continue
             response.raise_for_status()
             data = response.json()
             parts = data["candidates"][0]["content"]["parts"]
             answer = "\n".join(part.get("text", "") for part in parts if isinstance(part, dict)).strip()
+            cache.delete(circuit_key)
             return answer[:1200] or None
         except (requests.RequestException, KeyError, IndexError, TypeError, ValueError):
-            if attempt == 0:
-                time.sleep(0.4)
+            if attempt + 1 < attempts:
+                time.sleep(0.15)
                 continue
             logger.warning("Gemini guide request failed", exc_info=True)
+    cache.set(circuit_key, True, timeout=cooldown)
     return None

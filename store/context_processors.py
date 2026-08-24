@@ -1,6 +1,8 @@
+from django.conf import settings
 from django.utils.translation import get_language
 from django.db.models import Count, Q
 from .models import Category, Product
+from .services import cart_item_count
 
 COPIES = {
     "en": {
@@ -386,14 +388,7 @@ def global_context(request):
     lang = get_language()
     copy = COPIES.get(lang, COPIES["en"])
     
-    bag = request.session.get("bag", {})
-    bag_total_count = 0
-    if isinstance(bag, dict):
-        for qty in bag.values():
-            try:
-                bag_total_count += int(qty)
-            except (ValueError, TypeError):
-                pass
+    bag_total_count = cart_item_count(request.session, request.user)
                 
     # Fetch active categories and translate them dynamically
     categories = list(Category.objects.filter(is_active=True).annotate(published_count=Count("products", filter=Q(products__is_published=True, products__is_active=True), distinct=True)).order_by("display_order", "name"))
@@ -437,6 +432,7 @@ def global_context(request):
         "lang_urls": lang_urls,
         "global_products_count": Product.objects.published().count(),
         "csp_nonce": getattr(request, "csp_nonce", ""),
+        "support_email": getattr(settings, "NEXORA_SUPPORT_EMAIL", ""),
     }
 
 ACCOUNT_COPIES = {
@@ -448,7 +444,10 @@ ACCOUNT_COPIES = {
         "service_title": "Returns & warranty", "return_label": "Return", "warranty_claim_label": "Warranty",
         "no_service_requests": "No active service requests.", "compare_title": "Compare devices", "compare_eyebrow": "NEXORA COMPARE",
         "comparison_label": "Product comparison", "feature_label": "Feature", "rating": "Rating",
-        "footer_location": "TBILISI / GEORGIA", "email_in_use": "An account already uses this email address."
+        "footer_location": "TBILISI / GEORGIA", "email_in_use": "An account already uses this email address.",
+        "privacy_controls": "Privacy & account data", "download_data": "Download my data",
+        "request_deletion": "Request account deletion", "cancel_deletion": "Cancel deletion request",
+        "deletion_pending": "Deletion request pending review", "privacy_notice": "Privacy", "terms_notice": "Terms", "cookie_notice": "Cookies"
     },
     "ka": {
         "home_label": "NEXORA-ს მთავარი გვერდი", "new_badge": "ახალი", "source_link": "Wikimedia-ს წყარო",
@@ -458,7 +457,10 @@ ACCOUNT_COPIES = {
         "service_title": "დაბრუნება და გარანტია", "return_label": "დაბრუნება", "warranty_claim_label": "გარანტია",
         "no_service_requests": "აქტიური მომსახურების მოთხოვნა არ არის.", "compare_title": "მოწყობილობების შედარება", "compare_eyebrow": "NEXORA შედარება",
         "comparison_label": "პროდუქტების შედარება", "feature_label": "მახასიათებელი", "rating": "რეიტინგი",
-        "footer_location": "თბილისი / საქართველო", "email_in_use": "ამ ელფოსტით ანგარიში უკვე არსებობს."
+        "footer_location": "თბილისი / საქართველო", "email_in_use": "ამ ელფოსტით ანგარიში უკვე არსებობს.",
+        "privacy_controls": "კონფიდენციალურობა და ანგარიშის მონაცემები", "download_data": "ჩემი მონაცემების ჩამოტვირთვა",
+        "request_deletion": "ანგარიშის წაშლის მოთხოვნა", "cancel_deletion": "წაშლის მოთხოვნის გაუქმება",
+        "deletion_pending": "წაშლის მოთხოვნა განხილვის პროცესშია", "privacy_notice": "კონფიდენციალურობა", "terms_notice": "პირობები", "cookie_notice": "Cookies"
     },
     "ru": {
         "home_label": "Главная NEXORA", "new_badge": "Новинка", "source_link": "Источник Wikimedia",
@@ -468,7 +470,10 @@ ACCOUNT_COPIES = {
         "service_title": "Возвраты и гарантия", "return_label": "Возврат", "warranty_claim_label": "Гарантия",
         "no_service_requests": "Активных обращений нет.", "compare_title": "Сравнение устройств", "compare_eyebrow": "СРАВНЕНИЕ NEXORA",
         "comparison_label": "Сравнение товаров", "feature_label": "Характеристика", "rating": "Рейтинг",
-        "footer_location": "ТБИЛИСИ / ГРУЗИЯ", "email_in_use": "Аккаунт с этим адресом электронной почты уже существует."
+        "footer_location": "ТБИЛИСИ / ГРУЗИЯ", "email_in_use": "Аккаунт с этим адресом электронной почты уже существует.",
+        "privacy_controls": "Конфиденциальность и данные аккаунта", "download_data": "Скачать мои данные",
+        "request_deletion": "Запросить удаление аккаунта", "cancel_deletion": "Отменить запрос на удаление",
+        "deletion_pending": "Запрос на удаление рассматривается", "privacy_notice": "Конфиденциальность", "terms_notice": "Условия", "cookie_notice": "Cookies"
     },
 }
 for language, values in ACCOUNT_COPIES.items():
@@ -523,4 +528,36 @@ RATING_COPIES = {
     },
 }
 for language, values in RATING_COPIES.items():
+    COPIES[language].update(values)
+
+PREMIUM_UI_COPIES = {
+    "en": {
+        "sort": "Sort products", "ambient_player": "Ambient audio player",
+        "microphone_reaction": "Use microphone for live visual reaction", "open_audio_player": "Open ambient audio player",
+        "play_ambient": "Play ambient sound", "ambient_signal": "Ambient signal", "ambient_volume": "Ambient volume",
+        "choose_track": "Choose an ambient track", "audio_ready": "Ambient audio ready", "pause_ambient": "Pause ambient sound",
+        "ambient_live": "Ambient audio live", "mic_live": "Microphone live", "mic_off": "Microphone off",
+        "stop_microphone": "Stop microphone reaction", "microphone_unavailable": "Microphone unavailable", "motion_reduced": "Motion reduced", "pull_cord": "Pull the cord to continue",
+        "technology_motion": "Technology in motion", "featured_technology": "Featured technology", "track_part": "Nordic music part",
+    },
+    "ka": {
+        "sort": "დახარისხება", "ambient_player": "ატმოსფერული აუდიო პლეიერი",
+        "microphone_reaction": "მიკროფონის გამოყენება ცოცხალი ვიზუალური რეაქციისთვის", "open_audio_player": "აუდიო პლეიერის გახსნა",
+        "play_ambient": "ფონური ხმის ჩართვა", "ambient_signal": "ატმოსფერული სიგნალი", "ambient_volume": "ხმის დონე",
+        "choose_track": "ატმოსფერული ტრეკის არჩევა", "audio_ready": "ატმოსფერული აუდიო მზადაა", "pause_ambient": "ფონური ხმის შეჩერება",
+        "ambient_live": "ატმოსფერული აუდიო აქტიურია", "mic_live": "მიკროფონი აქტიურია", "mic_off": "მიკროფონი გამორთულია",
+        "stop_microphone": "მიკროფონის რეაქციის შეჩერება", "microphone_unavailable": "მიკროფონი მიუწვდომელია", "motion_reduced": "მოძრაობა შემცირებულია", "pull_cord": "ჩამოწიე თოკი გასაგრძელებლად",
+        "technology_motion": "ტექნოლოგია მოძრაობაში", "featured_technology": "რჩეული ტექნოლოგია", "track_part": "ნორდიკული მელოდიის ნაწილი",
+    },
+    "ru": {
+        "sort": "Сортировка", "ambient_player": "Атмосферный аудиоплеер",
+        "microphone_reaction": "Использовать микрофон для живой визуальной реакции", "open_audio_player": "Открыть аудиоплеер",
+        "play_ambient": "Включить фоновый звук", "ambient_signal": "Атмосферный сигнал", "ambient_volume": "Громкость",
+        "choose_track": "Выбрать атмосферный трек", "audio_ready": "Атмосферное аудио готово", "pause_ambient": "Приостановить фоновый звук",
+        "ambient_live": "Атмосферное аудио активно", "mic_live": "Микрофон активен", "mic_off": "Микрофон выключен",
+        "stop_microphone": "Остановить реакцию микрофона", "microphone_unavailable": "Микрофон недоступен", "motion_reduced": "Движение уменьшено", "pull_cord": "Потяните шнур, чтобы продолжить",
+        "technology_motion": "Технологии в движении", "featured_technology": "Избранные технологии", "track_part": "Часть северной мелодии",
+    },
+}
+for language, values in PREMIUM_UI_COPIES.items():
     COPIES[language].update(values)

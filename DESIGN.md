@@ -6,7 +6,7 @@ NEXORA pairs a restrained commerce interface with selective cinematic moments. D
 
 ## Colour and themes
 
-All storefront colours are semantic CSS tokens expressed in OKLCH. Dark and light themes have equivalent surface, text, border, focus, success, warning, and error roles. The interface avoids pure black, pure white, gradient text, and colour-only status signals. User preference is persisted; the operating-system preference is the initial fallback.
+All storefront colours are semantic CSS tokens expressed in OKLCH. Dark and light themes have equivalent surface, text, border, focus, success, warning, and error roles. The interface avoids pure black, pure white, gradient text, and colour-only status signals. The legacy HOME WebGL canvas is the single deliberate exception: its internal `#000` stage is retained for calibrated shader contrast and is always covered by the themed cinematic surface around it. User preference is persisted; the operating-system preference is the initial fallback.
 
 ## Typography and layout
 

@@ -3,17 +3,58 @@ services:
     build: .
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nexora}:${POSTGRES_PASSWORD:-nexora-local-only}@db:5432/${POSTGRES_DB:-nexora}
+      POSTGRES_SSLMODE: disable
+      DJANGO_CACHE_URL: redis://cache:6379/1
+      PORT: "8000"
     depends_on:
+      db:
+        condition: service_healthy
       cache:
         condition: service_healthy
     ports:
       - "8000:8000"
+    volumes:
+      - media_data:/app/media
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,urllib.request; h=os.environ.get('DJANGO_ALLOWED_HOSTS','localhost').split(',')[0].strip() or 'localhost'; r=urllib.request.Request('http://127.0.0.1:8000/health/',headers={'Host':h,'X-Forwarded-Proto':'https'}); urllib.request.urlopen(r,timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nexora}
+      POSTGRES_USER: ${POSTGRES_USER:-nexora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexora-local-only}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
   cache:
-    image: redis:7-alpine
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:

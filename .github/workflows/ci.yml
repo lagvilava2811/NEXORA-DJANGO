@@ -1,0 +1,112 @@
+name: Django CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: nexora_ci
+          POSTGRES_USER: nexora
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexora -d nexora_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      DJANGO_DEBUG: "True"
+      DJANGO_SECRET_KEY: ci-only-django-secret-not-valid-outside-github-actions
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      DATABASE_URL: postgresql://nexora:ci-only-password@127.0.0.1:5432/nexora_ci
+      POSTGRES_SSLMODE: disable
+      DJANGO_CACHE_URL: redis://127.0.0.1:6379/1
+      DJANGO_EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
+      GEMINI_ENABLED: "False"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - run: python -m pip install -r requirements.lock
+      - run: python -m pip check
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py test store --noinput
+
+  production-check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: nexora_prod_check
+          POSTGRES_USER: nexora
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexora -d nexora_prod_check"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      DJANGO_DEBUG: "False"
+      DJANGO_SECRET_KEY: ci-only-production-check-secret-with-more-than-fifty-characters
+      DJANGO_ALLOWED_HOSTS: nexora.example.test
+      DJANGO_CSRF_TRUSTED_ORIGINS: https://nexora.example.test
+      DATABASE_URL: postgresql://nexora:ci-only-password@127.0.0.1:5432/nexora_prod_check
+      POSTGRES_SSLMODE: disable
+      DJANGO_CACHE_URL: redis://127.0.0.1:6379/1
+      DJANGO_EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+      EMAIL_HOST: smtp.example.test
+      EMAIL_PORT: "587"
+      EMAIL_HOST_USER: ci-smtp-user
+      EMAIL_HOST_PASSWORD: ci-smtp-password
+      DEFAULT_FROM_EMAIL: NEXORA <noreply@example.test>
+      GEMINI_ENABLED: "False"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - run: python -m pip install -r requirements.lock
+      - run: python manage.py migrate --noinput
+      - run: python manage.py check --deploy --fail-level ERROR
+      - run: python manage.py collectstatic --noinput

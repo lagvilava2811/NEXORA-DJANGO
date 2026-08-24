@@ -6,6 +6,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.mail import send_mail
 from django.db import transaction
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 
 from .models import EmailVerification
@@ -28,11 +29,11 @@ class VerificationStateError(Exception):
 
 
 EMAIL_SUBJECT_EN = 'Your NEXORA verification code'
-EMAIL_BODY_EN = 'Your verification code:\n\n{code}\n\nIt expires in {minutes} minutes.'
+EMAIL_BODY_EN = 'Your verification code:\n\n{code}\n\nOr confirm your email with this one-time link:\n{link}\n\nThe code and link expire in {minutes} minutes.'
 EMAIL_SUBJECT_KA = 'NEXORA - \u10d4\u10da\u10e4\u10dd\u10e1\u10e2\u10d8\u10e1 \u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d8\u10e1 \u10d9\u10dd\u10d3\u10d8'
-EMAIL_BODY_KA = '\u10d7\u10e5\u10d5\u10d4\u10dc\u10d8 \u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d8\u10e1 \u10d9\u10dd\u10d3\u10d8:\n\n{code}\n\n\u10d9\u10dd\u10d3\u10d8 \u10db\u10dd\u10e5\u10db\u10d4\u10d3\u10d4\u10d1\u10e1 {minutes} \u10ec\u10e3\u10d7\u10d8.'
+EMAIL_BODY_KA = '\u10d7\u10e5\u10d5\u10d4\u10dc\u10d8 \u10d3\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d1\u10d8\u10e1 \u10d9\u10dd\u10d3\u10d8:\n\n{code}\n\n\u10d0\u10dc \u10d3\u10d0\u10d0\u10d3\u10d0\u10e1\u10e2\u10e3\u10e0\u10d4\u10d7 \u10d4\u10da\u10e4\u10dd\u10e1\u10e2\u10d0 \u10d0\u10db \u10d4\u10e0\u10d7\u10ef\u10d4\u10e0\u10d0\u10d3\u10d8 \u10d1\u10db\u10e3\u10da\u10d8\u10d7:\n{link}\n\n\u10d9\u10dd\u10d3\u10e1\u10d0 \u10d3\u10d0 \u10d1\u10db\u10e3\u10da\u10e1 \u10d5\u10d0\u10d3\u10d0 \u10d2\u10d0\u10e1\u10d3\u10d8\u10e1 {minutes} \u10ec\u10e3\u10d7\u10e8\u10d8.'
 EMAIL_SUBJECT_RU = '\u041a\u043e\u0434 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f NEXORA'
-EMAIL_BODY_RU = '\u0412\u0430\u0448 \u043a\u043e\u0434 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f:\n\n{code}\n\n\u041a\u043e\u0434 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0442 {minutes} \u043c\u0438\u043d\u0443\u0442.'
+EMAIL_BODY_RU = '\u0412\u0430\u0448 \u043a\u043e\u0434 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f:\n\n{code}\n\n\u0418\u043b\u0438 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0435 \u043f\u043e\u0447\u0442\u0443 \u043f\u043e \u044d\u0442\u043e\u0439 \u043e\u0434\u043d\u043e\u0440\u0430\u0437\u043e\u0432\u043e\u0439 \u0441\u0441\u044b\u043b\u043a\u0435:\n{link}\n\n\u041a\u043e\u0434 \u0438 \u0441\u0441\u044b\u043b\u043a\u0430 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u044e\u0442 {minutes} \u043c\u0438\u043d\u0443\u0442.'
 
 
 def localized_email(language):
@@ -103,7 +104,7 @@ def mask_email(value):
     return f'{visible}***@{domain}'
 
 
-def issue_verification(user, language='en', enforce_cooldown=False):
+def issue_verification(user, language='en', enforce_cooldown=False, request=None):
     now = timezone.now()
     expiry_seconds = max(60, int(getattr(settings, 'EMAIL_VERIFICATION_EXPIRY_SECONDS', 600)))
     cooldown_seconds = max(1, int(getattr(settings, 'EMAIL_VERIFICATION_RESEND_COOLDOWN', 60)))
@@ -132,13 +133,23 @@ def issue_verification(user, language='en', enforce_cooldown=False):
             raise VerificationRateLimitError
 
         code = f'{secrets.randbelow(1_000_000):06d}'
+        link_token = secrets.token_urlsafe(32)
+        link_path = reverse('verify_email_link', kwargs={'user_id': user.pk, 'token': link_token})
+        if request is not None:
+            verification_link = request.build_absolute_uri(link_path)
+        else:
+            verification_link = f"{getattr(settings, 'PUBLIC_BASE_URL', '').rstrip('/')}{link_path}"
         minutes = max(1, expiry_seconds // 60)
         subject, body_template = localized_email(language)
-        message = body_template.format(code=code, minutes=minutes)
+        message = body_template.format(code=code, link=verification_link, minutes=minutes)
         body = render_to_string('email/verification_code.txt', {'message': message})
         html_body = render_to_string(
             'email/verification_code.html',
-            {'message': message, 'language': language},
+            {
+                'message': message,
+                'language': language,
+                'verification_link': verification_link,
+            },
         )
         try:
             sent = send_mail(
@@ -155,6 +166,7 @@ def issue_verification(user, language='en', enforce_cooldown=False):
             raise VerificationDeliveryError
 
         record.code_digest = make_password(code)
+        record.link_token_digest = make_password(link_token)
         record.expires_at = now + timedelta(seconds=expiry_seconds)
         record.resend_available_at = now + timedelta(seconds=cooldown_seconds)
         record.failed_attempts = 0

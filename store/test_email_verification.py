@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -73,6 +74,34 @@ class EmailVerificationFlowTests(TestCase):
         self.assertTrue(user.is_active)
         self.assertIn("_auth_user_id", self.client.session)
         self.assertRedirects(response, reverse("cabinet"))
+
+    def test_signup_email_also_contains_one_time_link_that_activates_account(self):
+        self.signup()
+        match = re.search(r"https?://testserver(?P<path>/[^\s]+verify-email/link/[^\s]+)", mail.outbox[0].body)
+        self.assertIsNotNone(match)
+
+        response = self.client.get(match.group("path"))
+        user = get_user_model().objects.get(username="verify-user")
+
+        self.assertTrue(user.is_active)
+        self.assertIn("_auth_user_id", self.client.session)
+        self.assertRedirects(response, reverse("cabinet"))
+
+        second_use = self.client.get(match.group("path"))
+        self.assertEqual(second_use.status_code, 200)
+
+    def test_signup_verification_link_expires_with_the_verification_window(self):
+        self.signup()
+        match = re.search(r"https?://testserver(?P<path>/[^\s]+verify-email/link/[^\s]+)", mail.outbox[0].body)
+        self.assertIsNotNone(match)
+        verification = EmailVerification.objects.get(user__username="verify-user")
+        verification.expires_at = timezone.now() - timedelta(seconds=1)
+        verification.save(update_fields=["expires_at"])
+
+        response = self.client.get(match.group("path"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(get_user_model().objects.get(username="verify-user").is_active)
 
     def test_expired_or_attempt_exhausted_code_is_rejected(self):
         self.signup()

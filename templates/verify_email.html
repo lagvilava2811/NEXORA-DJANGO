@@ -2,10 +2,10 @@
 {% block title %}{{ text.title }} | NEXORA{% endblock %}
 {% block robots %}noindex,nofollow{% endblock %}
 {% block content %}
-<section class='auth-section' aria-labelledby='verification-title'>
+<section class='auth-section commerce-shell auth-flow verification-flow' aria-labelledby='verification-title'>
     <p class='eyebrow'>NEXORA SECURE</p>
     <h1 id='verification-title'>{{ text.title }}</h1>
-    <div class='auth-card'>
+    <div class='auth-card auth-panel verification-panel'>
         <p>{{ text.intro }}</p>
         <p class='help-text'>{{ masked_email }}</p>
         {% if notice %}<div class='verification-notice' role='status' aria-live='polite'>{{ notice }}</div>{% endif %}

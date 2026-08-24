@@ -1,10 +1,11 @@
 from django.urls import path
-from django.contrib.auth import views as auth_views
 from . import views
+from . import privacy
 
 urlpatterns = [
     path('product/<str:slug>/rating/', views.rate_product, name='rate_product'),
     path('verify-email/', views.verify_email_view, name='verify_email'),
+    path('verify-email/link/<int:user_id>/<str:token>/', views.verify_email_link_view, name='verify_email_link'),
     path('verify-email/resend/', views.resend_verification_view, name='resend_verification'),
     path("", views.home, name="home"),
     path("shop/", views.shop, name="shop"),
@@ -17,14 +18,21 @@ urlpatterns = [
     path("guide/", views.guide, name="guide"),
     path("login/", views.login_view, name="login"),
     path("password-reset/", views.password_reset_request, name="password_reset"),
-    path("password-reset/done/", auth_views.PasswordResetDoneView.as_view(template_name="registration/password_reset_done.html"), name="password_reset_done"),
-    path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(template_name="registration/password_reset_confirm.html"), name="password_reset_confirm"),
-    path("reset/done/", auth_views.PasswordResetCompleteView.as_view(template_name="registration/password_reset_complete.html"), name="password_reset_complete"),
+    path("password-reset/done/", views.password_reset_code_view, name="password_reset_done"),
+    path("password-reset/resend/", views.password_reset_resend_view, name="password_reset_resend"),
+    path("password-reset/confirm/", views.password_reset_confirm_view, name="password_reset_confirm"),
+    path("password-reset/complete/", views.password_reset_complete_view, name="password_reset_complete"),
     path("signup/", views.signup_view, name="signup"),
     path("logout/", views.logout_view, name="logout"),
     path("cabinet/", views.cabinet_view, name="cabinet"),
     path("cabinet/address/add/", views.add_address_view, name="add_address"),
     path("cabinet/address/delete/<int:id>/", views.delete_address_view, name="delete_address"),
+    path("cabinet/data/export/", privacy.account_data_export, name="account_data_export"),
+    path("cabinet/delete/request/", privacy.request_account_deletion, name="request_account_deletion"),
+    path("cabinet/delete/cancel/", privacy.cancel_account_deletion, name="cancel_account_deletion"),
+    path("privacy/", privacy.legal_page, {"document": "privacy"}, name="privacy"),
+    path("terms/", privacy.legal_page, {"document": "terms"}, name="terms"),
+    path("cookies/", privacy.legal_page, {"document": "cookies"}, name="cookies"),
     path("coupon/apply/", views.apply_coupon_view, name="apply_coupon"),
     path("cart/drawer/", views.cart_drawer_ajax, name="cart_drawer_ajax"),
     path("cart/add/<int:id>/", views.cart_add_ajax, name="cart_add_ajax"),

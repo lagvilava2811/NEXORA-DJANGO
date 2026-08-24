@@ -32,6 +32,11 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = [value.strip() for value in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",") if value.strip()]
 CSRF_TRUSTED_ORIGINS = [value.strip() for value in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if value.strip()]
+TRUSTED_PROXY_IPS = tuple(
+    value.strip()
+    for value in os.getenv("DJANGO_TRUSTED_PROXY_IPS", "").split(",")
+    if value.strip()
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
@@ -137,6 +142,9 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
 
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "NEXORA <noreply@nexora.example>")
+NEXORA_LEGAL_NAME = os.getenv("NEXORA_LEGAL_NAME", "").strip()
+NEXORA_LEGAL_ADDRESS = os.getenv("NEXORA_LEGAL_ADDRESS", "").strip()
+NEXORA_SUPPORT_EMAIL = os.getenv("NEXORA_SUPPORT_EMAIL", "").strip()
 DJANGO_CACHE_URL = os.getenv('DJANGO_CACHE_URL', '').strip()
 if DJANGO_CACHE_URL:
     CACHES = {
@@ -168,10 +176,18 @@ EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '10'))
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '').strip()
 GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash-lite').strip()
 GEMINI_ENABLED = os.getenv('GEMINI_ENABLED', 'False').lower() in {'1', 'true', 'yes'}
+GEMINI_CONNECT_TIMEOUT = float(os.getenv('GEMINI_CONNECT_TIMEOUT', '2'))
+GEMINI_READ_TIMEOUT = float(os.getenv('GEMINI_READ_TIMEOUT', '6'))
+GEMINI_MAX_ATTEMPTS = int(os.getenv('GEMINI_MAX_ATTEMPTS', '2'))
+GEMINI_FAILURE_COOLDOWN_SECONDS = int(os.getenv('GEMINI_FAILURE_COOLDOWN_SECONDS', '20'))
 EMAIL_VERIFICATION_EXPIRY_SECONDS = int(os.getenv('EMAIL_VERIFICATION_EXPIRY_SECONDS', '600'))
 EMAIL_VERIFICATION_MAX_ATTEMPTS = int(os.getenv('EMAIL_VERIFICATION_MAX_ATTEMPTS', '5'))
 EMAIL_VERIFICATION_RESEND_COOLDOWN = int(os.getenv('EMAIL_VERIFICATION_RESEND_COOLDOWN', '60'))
 EMAIL_VERIFICATION_MAX_SENDS_PER_HOUR = int(os.getenv('EMAIL_VERIFICATION_MAX_SENDS_PER_HOUR', '5'))
+PASSWORD_RESET_CODE_EXPIRY_SECONDS = int(os.getenv('PASSWORD_RESET_CODE_EXPIRY_SECONDS', '600'))
+PASSWORD_RESET_CODE_MAX_ATTEMPTS = int(os.getenv('PASSWORD_RESET_CODE_MAX_ATTEMPTS', '5'))
+PASSWORD_RESET_CODE_RESEND_COOLDOWN = int(os.getenv('PASSWORD_RESET_CODE_RESEND_COOLDOWN', '60'))
+PASSWORD_RESET_CODE_MAX_SENDS_PER_HOUR = int(os.getenv('PASSWORD_RESET_CODE_MAX_SENDS_PER_HOUR', '5'))
 SIGNUP_RATE_LIMIT_PER_IP = int(os.getenv('SIGNUP_RATE_LIMIT_PER_IP', '10'))
 SIGNUP_RATE_LIMIT_PER_EMAIL = int(os.getenv('SIGNUP_RATE_LIMIT_PER_EMAIL', '3'))
 SIGNUP_RATE_LIMIT_WINDOW = int(os.getenv('SIGNUP_RATE_LIMIT_WINDOW', '3600'))
@@ -191,10 +207,32 @@ PASSWORD_RESET_RATE_LIMIT_WINDOW = int(os.getenv('PASSWORD_RESET_RATE_LIMIT_WIND
 if EMAIL_USE_TLS and EMAIL_USE_SSL:
     raise RuntimeError('EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled')
 
+LOG_FORMAT = os.getenv("DJANGO_LOG_FORMAT", "standard" if DEBUG else "json").strip().lower()
+if LOG_FORMAT not in {"standard", "json"}:
+    raise ImproperlyConfigured("DJANGO_LOG_FORMAT must be 'standard' or 'json'")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {"standard": {"format": "{levelname} {asctime} {name}: {message}", "style": "{"}},
-    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "standard"}},
+    "formatters": {
+        "standard": {"format": "{levelname} {asctime} {name}: {message}", "style": "{"},
+        "json": {"()": "store.logging.JsonFormatter"},
+    },
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": LOG_FORMAT}},
     "root": {"handlers": ["console"], "level": os.getenv("DJANGO_LOG_LEVEL", "INFO")},
 }
+
+SENTRY_DSN = os.getenv("SENTRY_DSN", "").strip()
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+    except ImportError as exc:
+        raise ImproperlyConfigured("SENTRY_DSN is set but sentry-sdk is not installed") from exc
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
+        release=os.getenv("SENTRY_RELEASE") or None,
+        send_default_pii=False,
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.0")),
+        profiles_sample_rate=float(os.getenv("SENTRY_PROFILES_SAMPLE_RATE", "0.0")),
+    )

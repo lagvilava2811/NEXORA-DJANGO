@@ -16,6 +16,9 @@ media/
 *.zip
 *.log
 .codex-write-probe
+*.tgz
+morph-*.png
+.three-vendor/
 staticfiles/
 media/.wikidata-staging/
 .DS_Store

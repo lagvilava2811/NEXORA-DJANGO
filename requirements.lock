@@ -1,0 +1,22 @@
+# Generated from requirements.in. Update with:
+#   python -m pip install "pip-tools==7.5.2"
+#   python -m piptools compile --output-file=requirements.lock requirements.in
+# Do not edit dependency versions by hand.
+
+asgiref==3.11.1
+certifi==2026.6.17
+charset-normalizer==3.4.9
+Django==5.2.16
+gunicorn==23.0.0
+idna==3.18
+packaging==26.2
+pillow==12.3.0
+psycopg==3.3.4
+psycopg-binary==3.3.4
+redis==6.4.0
+requests==2.34.2
+sentry-sdk==2.68.0
+sqlparse==0.5.5
+tzdata==2026.3
+urllib3==2.7.0
+whitenoise==6.12.0

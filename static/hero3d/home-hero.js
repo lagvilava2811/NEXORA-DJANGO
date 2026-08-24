@@ -8,17 +8,15 @@ class AmbientPlayer {
         this.master = null;
         this.dataArray = null;
         this.volume = 0;
+        this.pendingVolume = 0.16;
         this.track = 'part01';
         this.isPlaying = false;
-        this.tracks = {
-            part01: new URL('./audio/nordic-01.mp3', import.meta.url).href,
-            part02: new URL('./audio/nordic-02.mp3', import.meta.url).href,
-            part03: new URL('./audio/nordic-03.mp3', import.meta.url).href,
-            part04: new URL('./audio/nordic-04.mp3', import.meta.url).href,
-            part05: new URL('./audio/nordic-05.mp3', import.meta.url).href,
-            part06: new URL('./audio/nordic-06.mp3', import.meta.url).href,
-            part07: new URL('./audio/nordic-07.mp3', import.meta.url).href,
-        };
+        this.tracks = Object.fromEntries(
+            Array.from({ length: 7 }, (_, index) => {
+                const number = String(index + 1).padStart(2, '0');
+                return [`part${number}`, new URL(`./audio/nordic-${number}.mp3`, import.meta.url).href];
+            }),
+        );
         this.audio = new Audio(this.tracks[this.track]);
         this.audio.preload = 'metadata';
         this.audio.loop = true;
@@ -33,7 +31,7 @@ class AmbientPlayer {
         this.analyzer.fftSize = 256;
         this.dataArray = new Uint8Array(this.analyzer.frequencyBinCount);
         this.master = this.context.createGain();
-        this.master.gain.value = 0.16;
+        this.master.gain.value = this.pendingVolume;
         const source = this.context.createMediaElementSource(this.audio);
         source.connect(this.master);
         this.master.connect(this.analyzer);
@@ -41,14 +39,19 @@ class AmbientPlayer {
     }
 
     setTrack(track) {
-        if (!this.tracks[track]) return;
-        const wasPlaying = this.isPlaying;
+        if (!this.tracks[track]) return false;
         this.track = track;
         this.audio.pause();
         this.audio.src = this.tracks[track];
         this.audio.currentTime = 0;
         this.audio.load();
-        return wasPlaying;
+        return true;
+    }
+
+    setVolume(value) {
+        const normalised = Math.max(0, Math.min(1, Number(value) / 100));
+        this.pendingVolume = normalised;
+        if (this.master) this.master.gain.value = normalised;
     }
 
     async start() {
@@ -58,7 +61,7 @@ class AmbientPlayer {
             await this.audio.play();
             this.isPlaying = true;
             return true;
-        } catch (error) {
+        } catch {
             this.isPlaying = false;
             return false;
         }
@@ -88,58 +91,120 @@ if (section && canvas && window.gsap) {
     const launcher = section.querySelector('.hero3d-launch');
     const panel = section.querySelector('.hero3d-audio-panel');
     const micButton = section.querySelector('.hero3d-mic');
+    const micNote = section.querySelector('[data-mic-note]');
+    const micEnable = section.querySelector('[data-mic-enable]');
+    const micDismiss = section.querySelector('[data-mic-dismiss]');
     const playButton = section.querySelector('.hero3d-play');
     const state = section.querySelector('[data-audio-state]');
+    const trackName = section.querySelector('[data-track-name]');
+    const volumeControl = section.querySelector('.hero3d-volume');
     const tracks = [...section.querySelectorAll('.hero3d-track')];
-    let micStarted = false;
-
-    const setState = text => {
-        if (state) state.textContent = text;
+    const localized = document.getElementById('premium-audio-copy')?.dataset || {};
+    const ui = {
+        play: localized.play || 'Play ambient sound',
+        pause: localized.pause || 'Pause ambient sound',
+        ambientLive: localized.ambientLive || 'AMBIENT / LIVE',
+        micLive: localized.micLive || 'MIC / LIVE',
+        micOff: localized.micOff || 'MIC / OFF',
+        micStop: localized.micStop || 'Stop microphone reaction',
+        micUnavailable: localized.micUnavailable || 'MICROPHONE UNAVAILABLE',
+        motionReduced: localized.motionReduced || 'MOTION REDUCED',
+        ready: localized.ready || 'AUDIO READY',
+        signal: localized.signal || 'Ambient signal',
+        track: localized.track || 'Nordic music part',
+    };
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    let microphone = null;
+    let micPromptSeen = false;
+    const trackNames = {
+        part01: 'Nordic Ritual I', part02: 'Nordic Ritual II', part03: 'Nordic Ritual III',
+        part04: 'Nordic Ritual IV', part05: 'Nordic Ritual V', part06: 'Nordic Ritual VI', part07: 'Nordic Ritual VII',
     };
 
+    const setState = text => { if (state) state.textContent = text; };
+    const emitMicEvent = (event, detail = {}) => {
+        try {
+            const payload = { surface: 'home', ...detail };
+            const customEvent = new CustomEvent(`nexora:mic-${event}`, { detail: payload });
+            section.dispatchEvent(customEvent);
+            window.dispatchEvent(new CustomEvent(`nexora:mic-${event}`, { detail: payload }));
+        } catch {
+            // Optional integration hooks must never break the hero experience.
+        }
+    };
+    const closeMicNote = () => {
+        if (micNote) micNote.hidden = true;
+    };
+    const openMicNote = () => {
+        if (!micNote) return;
+        micPromptSeen = true;
+        micNote.hidden = false;
+        micEnable?.focus();
+        emitMicEvent('prompt-shown');
+    };
+    const setPlayButton = playing => {
+        playButton?.setAttribute('aria-pressed', String(playing));
+        if (!playButton) return;
+        playButton.textContent = playing ? '❚❚' : '▶';
+        playButton.setAttribute('aria-label', playing ? ui.pause : ui.play);
+    };
     const useAnalyzer = analyzer => {
         engine.audio = analyzer;
-        setState(analyzer instanceof AmbientPlayer ? 'AMBIENT / LIVE' : 'MIC / LIVE');
+        setState(analyzer instanceof AmbientPlayer ? ui.ambientLive : ui.micLive);
     };
-
-    const startAmbient = async () => {
-        const started = await player.start();
-        if (!started) {
-            setState('AUDIO READY');
-            return false;
-        }
-        useAnalyzer(player);
-        playButton?.setAttribute('aria-pressed', 'true');
-        if (playButton) {
-            playButton.textContent = '❚❚';
-            playButton.setAttribute('aria-label', 'Pause ambient sound');
-        }
-        return true;
+    const stopMicrophone = () => {
+        microphone?.stop?.();
+        microphone = null;
+        closeMicNote();
+        if (!(engine.audio instanceof AmbientPlayer)) engine.audio = null;
+        micButton?.setAttribute('aria-pressed', 'false');
+        micButton?.setAttribute('aria-label', localized.microphoneReaction || ui.micOff);
+        setState(player.isPlaying ? ui.ambientLive : ui.micOff);
+        emitMicEvent('stopped');
     };
-
     const stopAmbient = () => {
         player.stop();
         if (engine.audio === player) engine.audio = null;
-        playButton?.setAttribute('aria-pressed', 'false');
-        if (playButton) {
-            playButton.textContent = '▶';
-            playButton.setAttribute('aria-label', 'Play ambient sound');
-        }
-        setState(micStarted ? 'MIC / LIVE' : 'MIC / AUTO');
+        setPlayButton(false);
+        setState(microphone ? ui.micLive : ui.ready);
     };
-
-    const tryMicrophone = async () => {
-        if (micStarted || !navigator.mediaDevices?.getUserMedia) return false;
+    const startAmbient = async () => {
+        if (microphone) stopMicrophone();
+        const started = await player.start();
+        if (!started) {
+            setState(ui.ready);
+            return false;
+        }
+        useAnalyzer(player);
+        setPlayButton(true);
+        return true;
+    };
+    const startMicrophone = async () => {
+        if (microphone) return false;
+        if (!navigator.mediaDevices?.getUserMedia) {
+            setState(ui.micUnavailable);
+            emitMicEvent('fallback', { reason: 'unsupported' });
+            return false;
+        }
         try {
-            const microphone = new AudioAnalyzer();
+            emitMicEvent('permission-requested');
+            microphone = new AudioAnalyzer();
             await microphone.init();
             if (player.isPlaying) stopAmbient();
-            micStarted = true;
             useAnalyzer(microphone);
             micButton?.setAttribute('aria-pressed', 'true');
+            micButton?.setAttribute('aria-label', ui.micStop);
+            closeMicNote();
+            emitMicEvent('permission-granted');
+            emitMicEvent('started');
             return true;
         } catch (error) {
-            setState('AMBIENT READY');
+            microphone = null;
+            setState(ui.micUnavailable);
+            if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
+                emitMicEvent('permission-denied');
+            }
+            emitMicEvent('fallback', { reason: 'unavailable' });
             return false;
         }
     };
@@ -150,34 +215,58 @@ if (section && canvas && window.gsap) {
         if (panel) panel.hidden = isOpen;
     });
     micButton?.addEventListener('click', async () => {
-        const granted = await tryMicrophone();
-        if (!granted) setState('MICROPHONE UNAVAILABLE');
+        if (microphone) {
+            stopMicrophone();
+            return;
+        }
+        if (!micPromptSeen && micNote) {
+            openMicNote();
+            return;
+        }
+        await startMicrophone();
     });
-    playButton?.addEventListener('click', async () => {
+    micEnable?.addEventListener('click', async () => {
+        await startMicrophone();
+    });
+    micDismiss?.addEventListener('click', () => {
+        closeMicNote();
+        micButton?.focus();
+    });
+    playButton?.addEventListener('click', () => {
         if (player.isPlaying) stopAmbient();
-        else await startAmbient();
+        else startAmbient();
     });
     tracks.forEach(button => {
-        button.addEventListener('click', async () => {
+        button.addEventListener('click', () => {
+            const selectedTrack = button.dataset.track;
+            if (!player.setTrack(selectedTrack)) return;
             tracks.forEach(item => item.classList.toggle('is-active', item === button));
-            player.setTrack(button.dataset.track);
-            await startAmbient();
+            if (trackName) trackName.textContent = `${ui.track} ${Number(selectedTrack.slice(-2))}`;
+            startAmbient();
         });
     });
+    volumeControl?.addEventListener('input', event => player.setVolume(event.currentTarget.value));
 
-    const startPreferredAudio = async () => {
-        try {
-            const permission = await navigator.permissions?.query({ name: 'microphone' });
-            if (permission?.state === 'granted') return tryMicrophone();
-        } catch (error) {
-            // Some browsers do not expose microphone permission state.
+    const syncReducedMotion = () => {
+        if (reducedMotion?.matches) {
+            engine.isVisible = false;
+            engine.syncAnimationState();
+            section.querySelector('video')?.pause();
+            setState(ui.motionReduced);
+        } else {
+            engine.isVisible = true;
+            engine.syncAnimationState();
+            setState(player.isPlaying ? ui.ambientLive : ui.ready);
         }
-        setState('AUDIO READY');
-        return false;
     };
-
-    startPreferredAudio();
-    window.addEventListener('pointerdown', () => {
-        if (!micStarted) tryMicrophone();
+    reducedMotion?.addEventListener?.('change', syncReducedMotion);
+    syncReducedMotion();
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeMicNote();
+    });
+    window.addEventListener('pagehide', () => {
+        player.stop();
+        stopMicrophone();
+        engine.dispose();
     }, { once: true });
 }

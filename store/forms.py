@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import SetPasswordForm, UserCreationForm
 from django.utils.translation import get_language
 
 from .models import Review, UserAddress
@@ -210,3 +210,30 @@ class VerificationRecoveryForm(AccessibleFormMixin, forms.Form):
 
     def clean_email(self):
         return normalize_email(self.cleaned_data['email'])
+
+
+class PasswordResetRequestForm(AccessibleFormMixin, forms.Form):
+    autocomplete = {"email": "email"}
+    email = forms.EmailField(max_length=254)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_accessibility()
+
+    def clean_email(self):
+        return normalize_email(self.cleaned_data["email"])
+
+
+class PasswordResetCodeForm(VerificationCodeForm):
+    pass
+
+
+class PasswordResetSetPasswordForm(AccessibleFormMixin, SetPasswordForm):
+    autocomplete = {
+        "new_password1": "new-password",
+        "new_password2": "new-password",
+    }
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(user, *args, **kwargs)
+        self._apply_accessibility()

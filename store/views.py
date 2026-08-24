@@ -5,9 +5,9 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
+from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Avg, Count, F, Max, Min, Q
@@ -21,14 +21,29 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 
 from .context_processors import COPIES
 from .gemini import gemini_guide_reply
-from .forms import AddressForm, CheckoutForm, CouponForm, ProductRatingForm, ReviewForm, SignupForm, VerificationCodeForm, VerificationRecoveryForm, form_text
+from .forms import (
+    AddressForm,
+    CheckoutForm,
+    CouponForm,
+    PasswordResetCodeForm,
+    PasswordResetRequestForm,
+    PasswordResetSetPasswordForm,
+    ProductRatingForm,
+    ReviewForm,
+    SignupForm,
+    VerificationCodeForm,
+    VerificationRecoveryForm,
+    form_text,
+)
 from .models import (
+    AccountDeletionRequest,
     Brand,
     Category,
     Coupon,
     EmailVerification,
     Order,
     OrderItem,
+    PasswordResetCode,
     Product,
     ProductVariant,
     ProductRating,
@@ -47,12 +62,20 @@ from .verification import (
     localized_page_text,
     mask_email,
 )
+from .password_resets import (
+    PasswordResetCooldownError,
+    PasswordResetDeliveryError,
+    PasswordResetRateLimitError,
+    issue_password_reset_code,
+    localized_password_reset_text,
+)
 from .security import cache_rate_limited, login_rate_limited, normalize_email, request_ip
 from .services import (
     CheckoutError,
-    MAX_CART_QUANTITY,
     cart_rows,
     cart_totals,
+    change_cart_quantity,
+    clear_cart,
     create_order_from_session,
     safe_quantity,
     valid_coupon,
@@ -60,7 +83,7 @@ from .services import (
 
 
 def rows(request):
-    lines, total = cart_rows(request.session)
+    lines, total = cart_rows(request.session, request.user)
     return [(line.product, line.quantity, line.line_total) for line in lines], total
 
 
@@ -96,6 +119,22 @@ def home(request):
         .first()
         or Product.objects.storefront().filter(category__slug="laptops").order_by("-is_featured", "-rating", "name").first()
     )
+    # The orbit is deliberately sourced from the same published, local-media
+    # catalogue as the rest of the storefront.  Keep the main hero product in
+    # the first position and then add a small, diverse real-product edit.
+    orbit_candidates = list(
+        Product.objects.storefront()
+        .order_by("-is_featured", "-rating", "pk")[:18]
+    )
+    orbit_products = []
+    if hero_product:
+        orbit_products.append(hero_product)
+    orbit_products.extend(
+        product
+        for product in orbit_candidates
+        if product.pk not in {item.pk for item in orbit_products}
+    )
+    orbit_products = orbit_products[:8]
     categories = Category.objects.filter(is_active=True).order_by("display_order", "name")
     featured_brands = Brand.objects.filter(is_featured=True, products_link__is_published=True).distinct().order_by("display_order", "name")[:8]
     return render(
@@ -104,6 +143,7 @@ def home(request):
         {
             "products": products,
             "hero_product": hero_product,
+            "orbit_products": orbit_products,
             "categories": categories,
             "featured_brands": featured_brands,
         },
@@ -115,17 +155,7 @@ def shop(request):
     products = Product.objects.storefront()
     query = request.GET.get("q", "").strip()[:120]
     if query:
-        products = products.filter(
-            Q(name__icontains=query)
-            | Q(name_ka__icontains=query)
-            | Q(name_en__icontains=query)
-            | Q(name_ru__icontains=query)
-            | Q(description__icontains=query)
-            | Q(short_description__icontains=query)
-            | Q(full_description__icontains=query)
-            | Q(brand__icontains=query)
-            | Q(sku__icontains=query)
-        )
+        products = products.search(query)
 
     category = request.GET.get("category", "")[:100]
     if category:
@@ -159,7 +189,8 @@ def shop(request):
         "new": "-created_at",
         "name": "name",
     }.get(sort, "-is_featured")
-    products = products.order_by(ordering, "name", "pk")
+    if not (query and sort == "featured" and "search_rank" in products.query.annotations):
+        products = products.order_by(ordering, "name", "pk")
 
     published = Product.objects.published()
     available_brands = Brand.objects.filter(
@@ -167,11 +198,16 @@ def shop(request):
     ).distinct().order_by("name")
     price_range = published.aggregate(min_price=Min("price"), max_price=Max("price"))
     page = Paginator(products, 24, orphans=3).get_page(request.GET.get("page"))
+    # Curated local catalog images for the visual masthead; no external media.
+    hero_products = list(
+        Product.objects.storefront().order_by("-is_featured", "-rating", "pk")[:14]
+    )
     return render(
         request,
         "shop.html",
         {
             "products": page,
+            "hero_products": hero_products,
             "page": page,
             "query": query,
             "categories": Category.objects.filter(is_active=True).order_by("display_order", "name"),
@@ -219,11 +255,6 @@ def product(request, slug):
     return render(request, "product.html", _product_context(request, product_item))
 
 
-def _bag_key(product_id, variant_id=None):
-    """Keep product-only entries backwards compatible and variants distinct."""
-    return f"{product_id}:{variant_id}" if variant_id else str(product_id)
-
-
 def _requested_variant(product_item, value):
     if not value:
         return None
@@ -233,10 +264,6 @@ def _requested_variant(product_item, value):
         product=product_item,
         is_active=True,
     )
-
-
-def _available_stock(product_item, variant=None):
-    return min(product_item.stock, variant.stock_quantity) if variant else product_item.stock
 
 
 @require_GET
@@ -262,12 +289,14 @@ def add(request, id):
     product_item = get_object_or_404(Product.objects.published(), pk=id)
     variant = _requested_variant(product_item, request.POST.get("variant"))
     quantity = safe_quantity(request.POST.get("quantity"), default=1)
-    bag_data = request.session.get("bag", {}) if isinstance(request.session.get("bag", {}), dict) else {}
-    key = _bag_key(product_item.pk, variant.pk if variant else None)
-    current = safe_quantity(bag_data.get(key), default=0)
-    bag_data[key] = min(_available_stock(product_item, variant), current + max(1, quantity), MAX_CART_QUANTITY)
-    request.session["bag"] = bag_data
-    request.session.modified = True
+    change_cart_quantity(
+        request.session,
+        request.user,
+        product_item,
+        variant,
+        max(1, quantity),
+        increment=True,
+    )
     return redirect(_safe_next(request, "bag"))
 
 
@@ -275,15 +304,8 @@ def add(request, id):
 def update(request, id):
     product_item = get_object_or_404(Product.objects.published(), pk=id)
     variant = _requested_variant(product_item, request.POST.get("variant"))
-    bag_data = request.session.get("bag", {}) if isinstance(request.session.get("bag", {}), dict) else {}
-    key = _bag_key(product_item.pk, variant.pk if variant else None)
     quantity = safe_quantity(request.POST.get("quantity"), default=0)
-    if quantity:
-        bag_data[key] = min(quantity, _available_stock(product_item, variant), MAX_CART_QUANTITY)
-    else:
-        bag_data.pop(key, None)
-    request.session["bag"] = bag_data
-    request.session.modified = True
+    change_cart_quantity(request.session, request.user, product_item, variant, quantity)
     return redirect("bag")
 
 
@@ -314,7 +336,7 @@ def checkout(request):
         except CheckoutError as exc:
             form.add_error(None, str(exc))
         else:
-            request.session["bag"] = {}
+            clear_cart(request.session, request.user)
             request.session.pop("coupon_id", None)
             allowed = request.session.get("order_refs", [])
             request.session["order_refs"] = (allowed + [order.reference])[-10:]
@@ -379,8 +401,9 @@ def login_view(request):
 
 @require_http_methods(["GET", "POST"])
 def password_reset_request(request):
-    """Issue Django's signed, expiring password-reset link without enumeration."""
-    form = PasswordResetForm(request.POST or None)
+    """Issue a hashed six-digit reset code without disclosing account existence."""
+    text = localized_password_reset_text(get_language())
+    form = PasswordResetRequestForm(request.POST or None)
     if request.method == "POST":
         email = normalize_email(request.POST.get("email", ""))
         limited = login_rate_limited(
@@ -391,19 +414,162 @@ def password_reset_request(request):
             account_limit=getattr(settings, "PASSWORD_RESET_RATE_LIMIT_PER_ACCOUNT", 3),
             window_seconds=getattr(settings, "PASSWORD_RESET_RATE_LIMIT_WINDOW", 3600),
         )
-        if limited:
-            form.add_error(None, "Too many reset requests. Please wait and try again.")
-        elif form.is_valid():
-            form.save(
-                request=request,
-                use_https=request.is_secure(),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                email_template_name="registration/password_reset_email.txt",
-                html_email_template_name="registration/password_reset_email.html",
-                subject_template_name="registration/password_reset_subject.txt",
-            )
+        if form.is_valid():
+            if not limited:
+                user = get_user_model().objects.filter(
+                    email__iexact=form.cleaned_data["email"],
+                    is_active=True,
+                ).first()
+                if user is not None:
+                    try:
+                        record = issue_password_reset_code(user, get_language())
+                    except (
+                        PasswordResetDeliveryError,
+                        PasswordResetRateLimitError,
+                    ):
+                        record = None
+                    if record is not None:
+                        request.session["pending_password_reset_user_id"] = user.pk
             return redirect("password_reset_done")
-    return render(request, "registration/password_reset_form.html", {"form": form})
+    return render(request, "registration/password_reset_form.html", {"form": form, "text": text})
+
+
+def _password_reset_record(request, *, verified=False):
+    user_id = request.session.get(
+        "password_reset_verified_user_id" if verified else "pending_password_reset_user_id"
+    )
+    if not user_id:
+        return None
+    queryset = PasswordResetCode.objects.select_related("user").filter(
+        user_id=user_id,
+        user__is_active=True,
+        used_at__isnull=True,
+        pending_reset_at__isnull=False,
+    )
+    if verified:
+        queryset = queryset.filter(
+            pk=request.session.get("password_reset_verified_record_id"),
+            verified_at__isnull=False,
+        )
+    return queryset.first()
+
+
+@require_http_methods(["GET", "POST"])
+def password_reset_code_view(request):
+    text = localized_password_reset_text(get_language())
+    form = PasswordResetCodeForm(request.POST or None)
+    record = _password_reset_record(request)
+
+    if request.method == "POST" and form.is_valid():
+        if record is None:
+            form.add_error("code", text["invalid"])
+        else:
+            with transaction.atomic():
+                record = PasswordResetCode.objects.select_for_update().select_related("user").get(pk=record.pk)
+                if record.used_at is not None or record.pending_reset_at is None:
+                    form.add_error("code", text["invalid"])
+                elif record.is_expired:
+                    form.add_error("code", text["expired"])
+                elif record.is_locked:
+                    form.add_error("code", text["locked"])
+                elif record.check_code(form.cleaned_data["code"]):
+                    record.verified_at = timezone.now()
+                    record.code_digest = ""
+                    record.save(update_fields=["verified_at", "code_digest", "updated_at"])
+                    request.session["password_reset_verified_user_id"] = record.user_id
+                    request.session["password_reset_verified_record_id"] = record.pk
+                    return redirect("password_reset_confirm")
+                else:
+                    record.failed_attempts += 1
+                    record.save(update_fields=["failed_attempts", "updated_at"])
+                    form.add_error("code", text["locked"] if record.is_locked else text["invalid"])
+
+    return render(
+        request,
+        "registration/password_reset_done.html",
+        {"form": form, "text": text, "notice": text["sent"]},
+    )
+
+
+@require_POST
+def password_reset_resend_view(request):
+    text = localized_password_reset_text(get_language())
+    record = _password_reset_record(request)
+    if record is not None:
+        try:
+            issue_password_reset_code(
+                record.user,
+                get_language(),
+                enforce_cooldown=True,
+            )
+        except (
+            PasswordResetCooldownError,
+            PasswordResetDeliveryError,
+            PasswordResetRateLimitError,
+        ):
+            pass
+    return render(
+        request,
+        "registration/password_reset_done.html",
+        {"form": PasswordResetCodeForm(), "text": text, "notice": text["sent"]},
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def password_reset_confirm_view(request):
+    text = localized_password_reset_text(get_language())
+    record = _password_reset_record(request, verified=True)
+    if record is None or record.is_expired:
+        _clear_password_reset_session(request)
+        return redirect("password_reset")
+
+    form = PasswordResetSetPasswordForm(record.user, request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            locked = PasswordResetCode.objects.select_for_update().select_related("user").get(pk=record.pk)
+            if (
+                locked.used_at is not None
+                or locked.pending_reset_at is None
+                or locked.verified_at is None
+                or locked.is_expired
+            ):
+                _clear_password_reset_session(request)
+                return redirect("password_reset")
+            locked.user.set_password(form.cleaned_data["new_password1"])
+            locked.user.save(update_fields=["password"])
+            locked.used_at = timezone.now()
+            locked.pending_reset_at = None
+            locked.verified_at = None
+            locked.code_digest = ""
+            locked.save(
+                update_fields=["used_at", "pending_reset_at", "verified_at", "code_digest", "updated_at"]
+            )
+        _clear_password_reset_session(request)
+        return redirect("password_reset_complete")
+
+    return render(
+        request,
+        "registration/password_reset_confirm.html",
+        {"form": form, "text": text, "validlink": True},
+    )
+
+
+def _clear_password_reset_session(request):
+    for key in (
+        "pending_password_reset_user_id",
+        "password_reset_verified_user_id",
+        "password_reset_verified_record_id",
+    ):
+        request.session.pop(key, None)
+
+
+@require_GET
+def password_reset_complete_view(request):
+    return render(
+        request,
+        "registration/password_reset_complete.html",
+        {"text": localized_password_reset_text(get_language())},
+    )
 
 
 def _legacy_signup_view(request):
@@ -446,7 +612,7 @@ def signup_view(request):
                     user.email = email
                     user.is_active = False
                     user.save()
-                    issue_verification(user, get_language())
+                    issue_verification(user, get_language(), request=request)
             except IntegrityError:
                 form.add_error('email', form_text()['email_in_use'])
             except (VerificationDeliveryError, VerificationStateError):
@@ -504,7 +670,8 @@ def verify_email_view(request):
                 record.verified_at = timezone.now()
                 record.pending_verification_at = None
                 record.code_digest = ''
-                record.save(update_fields=['verified_at', 'pending_verification_at', 'code_digest', 'updated_at'])
+                record.link_token_digest = ''
+                record.save(update_fields=['verified_at', 'pending_verification_at', 'code_digest', 'link_token_digest', 'updated_at'])
                 verified_user = record.user
             else:
                 record.failed_attempts += 1
@@ -528,6 +695,63 @@ def verify_email_view(request):
         'can_verify': True,
     }
     return render(request, 'verify_email.html', context)
+
+
+@require_GET
+def verify_email_link_view(request, user_id, token):
+    """Consume a one-time, hashed email-verification link."""
+    text = localized_page_text(get_language())
+    verified_user = None
+    with transaction.atomic():
+        record = EmailVerification.objects.select_for_update().select_related('user').filter(
+            user_id=user_id,
+            verified_at__isnull=True,
+            pending_verification_at__isnull=False,
+            user__is_active=False,
+        ).first()
+        if (
+            record is not None
+            and not record.is_expired
+            and record.check_link_token(token)
+        ):
+            record.user.is_active = True
+            record.user.save(update_fields=['is_active'])
+            record.verified_at = timezone.now()
+            record.pending_verification_at = None
+            record.code_digest = ''
+            record.link_token_digest = ''
+            record.save(
+                update_fields=[
+                    'verified_at',
+                    'pending_verification_at',
+                    'code_digest',
+                    'link_token_digest',
+                    'updated_at',
+                ]
+            )
+            verified_user = record.user
+
+    if verified_user is not None:
+        login(request, verified_user, backend='django.contrib.auth.backends.ModelBackend')
+        request.session.pop('pending_verification_user_id', None)
+        target = request.session.pop('post_verify_next', reverse('cabinet'))
+        if not url_has_allowed_host_and_scheme(target, {request.get_host()}, request.is_secure()):
+            target = reverse('cabinet')
+        return redirect(target)
+
+    return render(
+        request,
+        'verify_email.html',
+        {
+            'form': VerificationCodeForm(),
+            'recovery_form': VerificationRecoveryForm(),
+            'text': text,
+            'notice': text['expired'],
+            'masked_email': '***',
+            'can_verify': False,
+        },
+        status=200,
+    )
 
 
 @require_POST
@@ -558,7 +782,12 @@ def resend_verification_view(request):
         ).first()
         if record is not None:
             try:
-                issue_verification(record.user, get_language(), enforce_cooldown=True)
+                issue_verification(
+                    record.user,
+                    get_language(),
+                    enforce_cooldown=True,
+                    request=request,
+                )
             except (
                 VerificationCooldownError,
                 VerificationDeliveryError,
@@ -588,6 +817,7 @@ def _cabinet_context(request, address_form=None):
         "wishlist": request.user.wishlists.select_related("product").filter(product__is_published=True),
         "returns": ReturnRequest.objects.filter(user=request.user).order_by("-created_at"),
         "warranty_claims": WarrantyClaim.objects.filter(user=request.user).order_by("-created_at"),
+        "deletion_request": AccountDeletionRequest.objects.filter(user=request.user).first(),
     }
 
 
@@ -644,7 +874,7 @@ def apply_coupon_view(request):
 
 
 def _cart_drawer_response(request):
-    lines, total = cart_rows(request.session)
+    lines, total = cart_rows(request.session, request.user)
     currency = COPIES.get(get_language(), COPIES["en"]).get("currency_symbol", "₾")
     return JsonResponse(
         {
@@ -675,13 +905,15 @@ def cart_drawer_ajax(request):
 def cart_add_ajax(request, id):
     product_item = get_object_or_404(Product.objects.published(), pk=id)
     variant = _requested_variant(product_item, request.POST.get("variant"))
-    bag_data = request.session.get("bag", {}) if isinstance(request.session.get("bag", {}), dict) else {}
-    key = _bag_key(product_item.pk, variant.pk if variant else None)
-    current = safe_quantity(bag_data.get(key), default=0)
     requested = safe_quantity(request.POST.get("quantity"), default=1)
-    bag_data[key] = min(_available_stock(product_item, variant), current + max(1, requested), MAX_CART_QUANTITY)
-    request.session["bag"] = bag_data
-    request.session.modified = True
+    change_cart_quantity(
+        request.session,
+        request.user,
+        product_item,
+        variant,
+        max(1, requested),
+        increment=True,
+    )
     return _cart_drawer_response(request)
 
 
@@ -689,15 +921,8 @@ def cart_add_ajax(request, id):
 def cart_update_ajax(request, id):
     product_item = get_object_or_404(Product.objects.published(), pk=id)
     variant = _requested_variant(product_item, request.POST.get("variant"))
-    bag_data = request.session.get("bag", {}) if isinstance(request.session.get("bag", {}), dict) else {}
-    key = _bag_key(product_item.pk, variant.pk if variant else None)
     quantity = safe_quantity(request.POST.get("quantity"), default=0)
-    if quantity:
-        bag_data[key] = min(quantity, _available_stock(product_item, variant), MAX_CART_QUANTITY)
-    else:
-        bag_data.pop(key, None)
-    request.session["bag"] = bag_data
-    request.session.modified = True
+    change_cart_quantity(request.session, request.user, product_item, variant, quantity)
     return _cart_drawer_response(request)
 
 

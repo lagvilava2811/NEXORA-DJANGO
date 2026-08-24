@@ -24,6 +24,9 @@ export class Engine {
         this.isTransitioning = false;
         this.audio = null;
         this.animationFrame = null;
+        this.isVisible = true;
+        this.isPageVisible = !document.hidden;
+        this.isDisposed = false;
         this.init();
     }
 
@@ -38,7 +41,7 @@ export class Engine {
     init() {
         const bounds = this.getBounds();
         this.renderer.setSize(bounds.width, bounds.height);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setPixelRatio(this.getPixelRatio());
         this.camera.position.z = 2;
 
         this.mainTarget = new THREE.WebGLRenderTarget(bounds.width, bounds.height, {
@@ -104,9 +107,8 @@ export class Engine {
         this.createParticles(size, texture1);
         this.animate();
 
-        window.addEventListener('resize', () => this.resize());
-
-        window.addEventListener('mousemove', (e) => {
+        this.onResize = () => this.resize();
+        this.onMouseMove = (e) => {
             const rect = this.container.getBoundingClientRect();
             this.targetMouse.x = ((e.clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1;
             this.targetMouse.y = -(((e.clientY - rect.top) / Math.max(1, rect.height)) * 2 - 1);
@@ -116,7 +118,25 @@ export class Engine {
                 cursor.style.left = (e.clientX - rect.left) + 'px';
                 cursor.style.top = (e.clientY - rect.top) + 'px';
             }
-        });
+        };
+        this.onVisibilityChange = () => {
+            this.isPageVisible = !document.hidden;
+            this.syncAnimationState();
+        };
+        this.intersectionObserver = new IntersectionObserver(([entry]) => {
+            this.isVisible = entry.isIntersecting;
+            this.syncAnimationState();
+        }, { threshold: 0.04 });
+
+        window.addEventListener('resize', this.onResize, { passive: true });
+        window.addEventListener('mousemove', this.onMouseMove, { passive: true });
+        document.addEventListener('visibilitychange', this.onVisibilityChange);
+        this.intersectionObserver.observe(this.container);
+    }
+
+    getPixelRatio() {
+        const compactViewport = window.matchMedia?.('(max-width: 767px)').matches;
+        return Math.min(window.devicePixelRatio || 1, compactViewport ? 1.15 : 1.5);
     }
 
     resize() {
@@ -124,6 +144,7 @@ export class Engine {
         this.camera.aspect = bounds.width / bounds.height;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(bounds.width, bounds.height);
+        this.renderer.setPixelRatio(this.getPixelRatio());
         this.mainTarget.setSize(bounds.width, bounds.height);
         this.backTarget.setSize(bounds.width, bounds.height);
     }
@@ -150,7 +171,7 @@ export class Engine {
                 gsap.to(this.simMaterial.uniforms.u_explosion, {
                     value: 0.05,
                     duration: 1.5,
-                    ease: "elastic.out(1, 0.3)",
+                    ease: "power3.out",
                     onComplete: () => {
                         this.isTransitioning = false;
                     }
@@ -179,8 +200,9 @@ export class Engine {
                 u_posTexture: { value: null },
                 u_time: { value: 0 },
                 u_audio: { value: 0 },
-                u_color1: { value: new THREE.Color("#00ffff") },
-                u_color2: { value: new THREE.Color("#ff00ff") }
+                u_color1: { value: new THREE.Color("#c6c8c4") },
+                u_color2: { value: new THREE.Color("#e65332") },
+                u_color3: { value: new THREE.Color("#e8a43c") }
             },
             vertexShader: `
                 uniform sampler2D u_posTexture;
@@ -204,6 +226,7 @@ export class Engine {
             fragmentShader: `
                 uniform vec3 u_color1;
                 uniform vec3 u_color2;
+                uniform vec3 u_color3;
                 uniform float u_audio;
                 varying float vVelocity;
 
@@ -211,7 +234,9 @@ export class Engine {
                     float dist = length(gl_PointCoord - vec2(0.5));
                     if (dist > 0.5) discard;
 
-                    vec3 finalColor = mix(u_color1, u_color2, clamp(vVelocity, 0.0, 1.0));
+                    float energy = clamp(vVelocity + u_audio * 0.75, 0.0, 1.0);
+                    vec3 finalColor = mix(u_color1, u_color2, smoothstep(0.12, 0.72, energy));
+                    finalColor = mix(finalColor, u_color3, smoothstep(0.72, 1.0, energy));
                     
                     float alpha = smoothstep(0.5, 0.1, dist) * (0.5 + u_audio * 1.5);
                     
@@ -227,7 +252,20 @@ export class Engine {
         this.scene.add(this.points);
     }
 
+    syncAnimationState() {
+        if (this.isDisposed || !this.isVisible || !this.isPageVisible) {
+            if (this.animationFrame) {
+                cancelAnimationFrame(this.animationFrame);
+                this.animationFrame = null;
+            }
+            return;
+        }
+        if (!this.animationFrame) this.animationFrame = requestAnimationFrame(() => this.animate());
+    }
+
     animate() {
+        this.animationFrame = null;
+        if (this.isDisposed || !this.isVisible || !this.isPageVisible) return;
         this.animationFrame = requestAnimationFrame(() => this.animate());
         const delta = this.clock.getElapsedTime();
         
@@ -267,5 +305,22 @@ export class Engine {
         let temp = this.mainTarget;
         this.mainTarget = this.backTarget;
         this.backTarget = temp;
+    }
+
+    dispose() {
+        this.isDisposed = true;
+        if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
+        this.intersectionObserver?.disconnect();
+        window.removeEventListener('resize', this.onResize);
+        window.removeEventListener('mousemove', this.onMouseMove);
+        document.removeEventListener('visibilitychange', this.onVisibilityChange);
+        this.mainTarget?.dispose();
+        this.backTarget?.dispose();
+        this.renderMaterial?.dispose();
+        this.simMaterial?.dispose();
+        this.postMaterial?.dispose();
+        this.points?.geometry?.dispose();
+        this.postQuad?.geometry?.dispose();
+        this.renderer?.dispose();
     }
 }

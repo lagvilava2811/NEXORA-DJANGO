@@ -7,7 +7,7 @@ from uuid import uuid4
 from django.db import transaction
 from django.utils import timezone
 
-from .models import Coupon, Order, OrderItem, Product, ProductVariant
+from .models import Cart, CartItem, Coupon, Order, OrderItem, Product, ProductVariant
 
 FREE_SHIPPING_THRESHOLD = Decimal("250.00")
 STANDARD_SHIPPING = Decimal("20.00")
@@ -67,8 +67,139 @@ def normalised_bag(session):
     return bag
 
 
-def cart_rows(session):
-    bag = normalised_bag(session)
+def _authenticated(user):
+    return bool(user and getattr(user, "is_authenticated", False))
+
+
+@transaction.atomic
+def merge_session_cart(user, session):
+    """Merge a guest session bag into the account cart once after sign-in."""
+    if not _authenticated(user):
+        return None
+    guest_bag = normalised_bag(session)
+    cart, _ = Cart.objects.get_or_create(user=user)
+    cart = Cart.objects.select_for_update().get(pk=cart.pk)
+    if not guest_bag:
+        return cart
+
+    product_ids = {product_id for product_id, _ in guest_bag}
+    variant_ids = {variant_id for _, variant_id in guest_bag if variant_id}
+    products = {
+        product.pk: product
+        for product in Product.objects.published().filter(pk__in=product_ids)
+    }
+    variants = {
+        variant.pk: variant
+        for variant in ProductVariant.objects.filter(
+            pk__in=variant_ids,
+            product_id__in=product_ids,
+            is_active=True,
+        )
+    }
+    existing = {
+        (item.product_id, item.variant_id): item
+        for item in CartItem.objects.select_for_update().filter(cart=cart)
+    }
+    for (product_id, variant_id), guest_quantity in guest_bag.items():
+        product = products.get(product_id)
+        variant = variants.get(variant_id) if variant_id else None
+        if product is None or (variant_id and (variant is None or variant.product_id != product_id)):
+            continue
+        available = min(product.stock, variant.stock_quantity) if variant else product.stock
+        key = (product_id, variant_id)
+        current = existing.get(key)
+        quantity = min((current.quantity if current else 0) + guest_quantity, available, MAX_CART_QUANTITY)
+        if quantity <= 0:
+            continue
+        if current:
+            current.quantity = quantity
+            current.save(update_fields=("quantity", "updated_at"))
+        else:
+            existing[key] = CartItem.objects.create(
+                cart=cart,
+                product=product,
+                variant=variant,
+                quantity=quantity,
+            )
+
+    session.pop("bag", None)
+    session.modified = True
+    return cart
+
+
+def cart_mapping(session, user=None, *, lock=False):
+    if not _authenticated(user):
+        return normalised_bag(session)
+    cart = merge_session_cart(user, session)
+    if lock:
+        cart = Cart.objects.select_for_update().get(pk=cart.pk)
+    return {
+        (product_id, variant_id): quantity
+        for product_id, variant_id, quantity in cart.items.values_list(
+            "product_id", "variant_id", "quantity"
+        )
+    }
+
+
+@transaction.atomic
+def change_cart_quantity(session, user, product, variant, quantity, *, increment=False):
+    """Mutate either the persistent account cart or the guest session bag."""
+    available = min(product.stock, variant.stock_quantity) if variant else product.stock
+    quantity = safe_quantity(quantity, default=0)
+    if _authenticated(user):
+        cart = merge_session_cart(user, session)
+        cart = Cart.objects.select_for_update().get(pk=cart.pk)
+        item = CartItem.objects.select_for_update().filter(
+            cart=cart,
+            product=product,
+            variant=variant,
+        ).first()
+        target = (item.quantity if item and increment else 0) + quantity
+        target = min(target, available, MAX_CART_QUANTITY)
+        if target <= 0:
+            if item:
+                item.delete()
+        elif item:
+            item.quantity = target
+            item.save(update_fields=("quantity", "updated_at"))
+        else:
+            CartItem.objects.create(
+                cart=cart,
+                product=product,
+                variant=variant,
+                quantity=target,
+            )
+        return target
+
+    bag = session.get("bag", {}) if isinstance(session.get("bag", {}), dict) else {}
+    key = f"{product.pk}:{variant.pk}" if variant else str(product.pk)
+    current = safe_quantity(bag.get(key), default=0) if increment else 0
+    target = min(current + quantity, available, MAX_CART_QUANTITY)
+    if target > 0:
+        bag[key] = target
+    else:
+        bag.pop(key, None)
+    session["bag"] = bag
+    session.modified = True
+    return target
+
+
+def clear_cart(session, user=None):
+    if _authenticated(user):
+        CartItem.objects.filter(cart__user=user).delete()
+    session.pop("bag", None)
+    session.modified = True
+
+
+def cart_item_count(session, user=None):
+    if _authenticated(user):
+        cart = merge_session_cart(user, session)
+        return sum(cart.items.values_list("quantity", flat=True))
+    return sum(normalised_bag(session).values())
+
+
+def cart_rows(session, user=None, *, lock=False):
+    bag = cart_mapping(session, user, lock=lock)
     product_ids = {product_id for product_id, _ in bag}
     variant_ids = {variant_id for _, variant_id in bag if variant_id}
     products = {
@@ -136,7 +267,7 @@ def coupon_discount(coupon, subtotal):
 
 
 def cart_totals(session, user=None):
-    lines, subtotal = cart_rows(session)
+    lines, subtotal = cart_rows(session, user)
     coupon = valid_coupon(session.get("coupon_id"), subtotal, user=user)
     discount = coupon_discount(coupon, subtotal)
     shipping = shipping_cost(subtotal)
@@ -153,7 +284,7 @@ def cart_totals(session, user=None):
 
 @transaction.atomic
 def create_order_from_session(session, cleaned_data, user=None):
-    bag = normalised_bag(session)
+    bag = cart_mapping(session, user, lock=True)
     if not bag:
         raise CheckoutError("Your bag is empty.")
 
@@ -240,4 +371,6 @@ def create_order_from_session(session, cleaned_data, user=None):
     if coupon:
         coupon.times_used += 1
         coupon.save(update_fields=["times_used"])
+    if _authenticated(user):
+        CartItem.objects.filter(cart__user=user).delete()
     return order

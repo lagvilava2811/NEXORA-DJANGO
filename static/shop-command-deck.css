@@ -1,0 +1,181 @@
+/* Shop command deck: purpose-built for a fast, legible catalogue control surface. */
+.shop-command-search {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  min-height: 4.25rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--border-soft), var(--accent) 8%);
+  border-radius: 1rem;
+  background: color-mix(in oklch, var(--surface), transparent 3%);
+  box-shadow: 0 1.25rem 3.5rem color-mix(in oklch, var(--bg), transparent 74%);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.shop-command-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent), transparent 84%), 0 1.25rem 3.5rem color-mix(in oklch, var(--bg), transparent 70%);
+}
+
+.shop-command-search-icon {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 100%;
+  color: var(--muted);
+}
+
+.shop-command-search-icon svg,
+.shop-command-search button svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+
+.shop-command-search input {
+  min-width: 0;
+  height: 100%;
+  padding: 0.9rem 0.25rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font: 650 clamp(.9rem, 1.3vw, 1rem)/1.2 var(--font-sans);
+  outline: 0;
+}
+
+.shop-command-search input::placeholder { color: var(--muted); opacity: 1; }
+
+.shop-command-search button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .65rem;
+  min-width: max-content;
+  min-height: 3.25rem;
+  margin-right: .45rem;
+  padding: .75rem 1.05rem;
+  border: 1px solid transparent;
+  border-radius: .72rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 780 .78rem/1 var(--font-sans);
+  letter-spacing: .035em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 180ms ease, background-color 180ms ease, opacity 180ms ease;
+}
+
+.shop-command-search button:hover { transform: translateY(-1px); }
+.shop-command-search button:active { transform: translateY(0); }
+
+.shop-command-deck {
+  display: grid;
+  grid-template-columns: minmax(11rem, 1fr) auto;
+  align-items: center;
+  gap: 1.25rem;
+  min-height: 4.5rem;
+  padding: .6rem 0 1rem;
+  border-bottom: 1px solid color-mix(in oklch, var(--border-soft), var(--text) 8%);
+}
+
+.shop-command-count {
+  color: var(--muted);
+  font: 650 .72rem/1.2 var(--font-mono);
+  letter-spacing: .04em;
+}
+
+.shop-command-sort {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .42rem;
+}
+
+.shop-command-sort-label {
+  align-self: center;
+  margin-right: .25rem;
+  color: var(--muted);
+  font: 720 .63rem/1 var(--font-mono);
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.shop-command-sort a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.38rem;
+  padding: .55rem .75rem;
+  border: 1px solid var(--border-soft);
+  border-radius: .55rem;
+  background: color-mix(in oklch, var(--surface), transparent 9%);
+  color: var(--text-soft);
+  font: 720 .72rem/1 var(--font-mono);
+  letter-spacing: .015em;
+  text-decoration: none;
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.shop-command-sort a:hover {
+  border-color: color-mix(in oklch, var(--accent), var(--border-soft) 50%);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.shop-command-sort a.active,
+.shop-command-sort a[aria-current="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 .55rem 1.4rem color-mix(in oklch, var(--accent), transparent 75%);
+}
+
+.shop-command-search.is-pending,
+.shop-command-sort.is-pending { pointer-events: none; }
+
+.shop-command-search.is-pending button,
+.shop-command-sort a.is-pending { opacity: .72; }
+
+.shop-command-search.is-pending button svg,
+.shop-command-sort a.is-pending::after {
+  animation: shop-command-spin .68s linear infinite;
+}
+
+.shop-command-sort a.is-pending::after {
+  content: '';
+  width: .7rem;
+  height: .7rem;
+  margin-left: .45rem;
+  border: 1px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+}
+
+@keyframes shop-command-spin { to { transform: rotate(1turn); } }
+
+@media (max-width: 50rem) {
+  .shop-command-deck { grid-template-columns: 1fr; align-items: start; }
+  .shop-command-sort { justify-content: flex-start; }
+}
+
+@media (max-width: 38rem) {
+  .shop-command-search { min-height: 3.8rem; border-radius: .85rem; }
+  .shop-command-search-icon { width: 2.9rem; }
+  .shop-command-search button { min-width: 3.1rem; margin-right: .3rem; padding-inline: .8rem; }
+  .shop-command-search button span { display: none; }
+  .shop-command-deck { gap: .8rem; }
+  .shop-command-sort { gap: .35rem; }
+  .shop-command-sort-label { width: 100%; margin-bottom: .12rem; }
+  .shop-command-sort a { min-height: 2.5rem; padding-inline: .62rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-command-search, .shop-command-search button, .shop-command-sort a { transition: none; }
+  .shop-command-search.is-pending button svg, .shop-command-sort a.is-pending::after { animation: none; }
+}

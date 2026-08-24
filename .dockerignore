@@ -7,5 +7,16 @@ venv
 staticfiles
 media/.wikidata-staging
 .pytest_cache
+.mypy_cache
+.ruff_cache
 .coverage
 *.log
+*.zip
+db.sqlite3
+.three-vendor
+three-*.tgz
+morph-desktop*.png
+morph-mobile.png
+.codex-write-probe
+.github
+scripts/__pycache__

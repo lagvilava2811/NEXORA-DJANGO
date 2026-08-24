@@ -93,6 +93,49 @@ class ProductQuerySet(models.QuerySet):
     def storefront(self):
         return self.published().select_related("category", "primary_category", "brand_obj").prefetch_related("media", "variants")
 
+    def search(self, query):
+        """Search the catalogue with PostgreSQL ranking and a portable fallback."""
+        query = (query or "").strip()[:120]
+        if not query:
+            return self
+
+        from django.db import connection
+
+        if connection.vendor == "postgresql":
+            from django.contrib.postgres.search import (
+                SearchQuery,
+                SearchRank,
+                SearchVector,
+                TrigramWordSimilarity,
+            )
+
+            search_query = SearchQuery(query, config="simple", search_type="websearch")
+            vector = SearchVector("search_document", config="simple")
+            return (
+                self.annotate(
+                    search_vector=vector,
+                    search_rank=SearchRank(vector, search_query),
+                    search_similarity=TrigramWordSimilarity(query, "search_document"),
+                )
+                .filter(
+                    models.Q(search_vector=search_query)
+                    | models.Q(search_document__trigram_word_similar=query)
+                )
+                .order_by("-search_rank", "-search_similarity", "-is_featured", "name", "pk")
+            )
+
+        return self.filter(
+            models.Q(name__icontains=query)
+            | models.Q(name_ka__icontains=query)
+            | models.Q(name_en__icontains=query)
+            | models.Q(name_ru__icontains=query)
+            | models.Q(description__icontains=query)
+            | models.Q(short_description__icontains=query)
+            | models.Q(full_description__icontains=query)
+            | models.Q(brand__icontains=query)
+            | models.Q(sku__icontains=query)
+        )
+
 class Product(models.Model):
     objects = ProductQuerySet.as_manager()
     brand_obj = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name="products_link")
@@ -154,6 +197,7 @@ class Product(models.Model):
 
     seo_title = models.CharField(max_length=150, blank=True)
     seo_description = models.TextField(blank=True)
+    search_document = models.TextField(blank=True, editable=False, default="")
 
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True, null=True)
@@ -161,6 +205,30 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+    def build_search_document(self):
+        return " ".join(
+            str(value).strip()
+            for value in (
+                self.name,
+                self.name_ka,
+                self.name_en,
+                self.name_ru,
+                self.brand,
+                self.sku,
+                self.short_description,
+                self.full_description,
+                self.description,
+            )
+            if value
+        )
+
+    def save(self, *args, **kwargs):
+        self.search_document = self.build_search_document()
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {"search_document"}
+        return super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         return reverse("product", args=[self.slug])
@@ -315,6 +383,13 @@ class ProductMedia(models.Model):
     def __str__(self):
         return f"{self.product.name} media ({self.media_type})"
 
+    @property
+    def localized_alt(self):
+        from django.utils.translation import get_language
+
+        language = (get_language() or "en").split("-", 1)[0]
+        return getattr(self, f"alt_text_{language}", "") or self.product.localized_name
+
 
 class TechnicalSpecification(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="specifications")
@@ -408,6 +483,59 @@ class Wishlist(models.Model):
 
     def __str__(self):
         return f"{self.user.username} → {self.product.name}"
+
+
+class Cart(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="cart",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Cart for {self.user}"
+
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="cart_items")
+    variant = models.ForeignKey(
+        ProductVariant,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="cart_items",
+    )
+    quantity = models.PositiveSmallIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(quantity__gte=1, quantity__lte=20),
+                name="cart_item_quantity_between_1_and_20",
+            ),
+            models.UniqueConstraint(
+                fields=("cart", "product"),
+                condition=models.Q(variant__isnull=True),
+                name="unique_cart_product_without_variant",
+            ),
+            models.UniqueConstraint(
+                fields=("cart", "product", "variant"),
+                condition=models.Q(variant__isnull=False),
+                name="unique_cart_product_variant",
+            ),
+        ]
+
+    def clean(self):
+        if self.variant_id and self.variant.product_id != self.product_id:
+            raise ValidationError("The selected variant must belong to the cart product.")
+
+    def __str__(self):
+        return f"{self.cart.user} · {self.product} × {self.quantity}"
 
 
 class CompareList(models.Model):
@@ -543,6 +671,7 @@ class ReturnRequest(models.Model):
 class EmailVerification(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='email_verification')
     code_digest = models.CharField(max_length=128)
+    link_token_digest = models.CharField(max_length=128, blank=True, default='')
     expires_at = models.DateTimeField()
     resend_available_at = models.DateTimeField()
     failed_attempts = models.PositiveSmallIntegerField(default=0)
@@ -560,6 +689,9 @@ class EmailVerification(models.Model):
     def check_code(self, candidate):
         return bool(self.code_digest) and check_password(str(candidate), self.code_digest)
 
+    def check_link_token(self, candidate):
+        return bool(self.link_token_digest) and check_password(str(candidate), self.link_token_digest)
+
     @property
     def is_expired(self):
         return timezone.now() >= self.expires_at
@@ -568,6 +700,68 @@ class EmailVerification(models.Model):
     def is_locked(self):
         maximum = getattr(settings, 'EMAIL_VERIFICATION_MAX_ATTEMPTS', 5)
         return self.failed_attempts >= maximum
+
+
+class PasswordResetCode(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='password_reset_code')
+    code_digest = models.CharField(max_length=128)
+    expires_at = models.DateTimeField()
+    resend_available_at = models.DateTimeField()
+    failed_attempts = models.PositiveSmallIntegerField(default=0)
+    send_count = models.PositiveSmallIntegerField(default=0)
+    send_window_started_at = models.DateTimeField(default=timezone.now)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    pending_reset_at = models.DateTimeField(null=True, blank=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ('-created_at',)
+
+    def check_code(self, candidate):
+        return bool(self.code_digest) and check_password(str(candidate), self.code_digest)
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
+    @property
+    def is_locked(self):
+        maximum = getattr(settings, 'PASSWORD_RESET_CODE_MAX_ATTEMPTS', 5)
+        return self.failed_attempts >= maximum
+
+
+class AccountDeletionRequest(models.Model):
+    """Auditable request; fulfillment is intentionally an operator action.
+
+    Orders can be subject to accounting, fraud-prevention, warranty, or other
+    retention duties.  Creating this row therefore never cascades into an
+    immediate account or order deletion.
+    """
+
+    STATUS_CHOICES = (
+        ("pending", "Pending"),
+        ("cancelled", "Cancelled"),
+        ("completed", "Completed"),
+    )
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="deletion_request",
+    )
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
+    requested_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    admin_note = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-requested_at",)
+
+    def __str__(self):
+        return f"Account deletion request for {self.user_id} ({self.status})"
 
 
 class WarrantyClaim(models.Model):

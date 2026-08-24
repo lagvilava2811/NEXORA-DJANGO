@@ -19,7 +19,7 @@ NEXORA is a premium, multilingual Django technology store for Georgian, English,
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.lock
 $env:DJANGO_DEBUG = "True"
 $env:DJANGO_SECRET_KEY = "replace-this-with-a-private-local-development-secret"
 python manage.py migrate
@@ -59,7 +59,7 @@ python -m pip check
 
 ## Email verification
 
-New accounts remain inactive until the owner enters the six-digit code delivered by email. Codes are generated with Python's `secrets` module, stored only as password hashes, expire after ten minutes by default, and are protected by attempt limits, resend cooldowns, and an hourly send cap. Failed SMTP delivery rolls account creation back instead of creating an unverifiable active account.
+New accounts remain inactive until the owner enters the six-digit code delivered by email or follows the unique one-time verification link in the same message. Codes and link tokens are generated with Python's `secrets` module, stored only as password hashes, expire after ten minutes by default, and are protected by attempt limits, resend cooldowns, and an hourly send cap. Failed SMTP delivery rolls account creation back instead of creating an unverifiable active account.
 
 Production uses Django's SMTP backend. Configure `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`, and `DEFAULT_FROM_EMAIL` from deployment secrets; never place SMTP credentials in source control. The console backend is suitable only for explicit local development. Verification email and page copy support Georgian, English, and Russian routes.
 
@@ -67,7 +67,9 @@ Signup and verification-recovery throttles use Django's cache and can be tuned w
 
 ## Account hardening
 
-Customer sign-in, Django admin sign-in, and password-reset requests are throttled through the shared cache by both IP address and normalized account identifier. Their limits are configurable with `LOGIN_RATE_LIMIT_*`, `ADMIN_LOGIN_RATE_LIMIT_*`, and `PASSWORD_RESET_RATE_LIMIT_*` environment variables. Password resets use Django's signed, expiring reset token and return the same confirmation page whether or not the requested email exists.
+Customer sign-in, Django admin sign-in, and password-reset requests are throttled through the shared cache by both IP address and normalized account identifier. Their limits are configurable with `LOGIN_RATE_LIMIT_*`, `ADMIN_LOGIN_RATE_LIMIT_*`, and `PASSWORD_RESET_RATE_LIMIT_*` environment variables. Password resets use a hashed six-digit code that expires after ten minutes by default and return the same confirmation page whether or not the requested email exists.
+
+`X-Forwarded-For` is ignored unless the direct peer belongs to an explicitly configured `DJANGO_TRUSTED_PROXY_IPS` IP/CIDR allowlist. Populate that setting only with a reverse proxy you control and have configured to sanitize forwarded headers; otherwise rate limiting safely uses `REMOTE_ADDR`.
 
 Coupons support a global limit and an optional per-authenticated-customer limit. Set `max_uses_per_user` to `0` for an unrestricted promotion or a positive value for a one-time/limited customer promotion. Product videos are allowlisted by extension, supplied MIME type, and container signature before an admin form accepts them.
 
@@ -88,10 +90,35 @@ For Docker:
 
 ```powershell
 Copy-Item .env.example .env
+# Replace POSTGRES_PASSWORD (use URL-safe characters) and DJANGO_SECRET_KEY in .env before starting.
 docker compose up --build
 ```
 
-Terminate TLS at a trusted reverse proxy and retain the configured forwarded-protocol header. Connect a certified payment provider before accepting online card payments; the included checkout supports a safe cash-on-delivery flow and server-side order creation.
+The Compose stack starts Django, PostgreSQL 17, and Redis 7.4 with named
+volumes for database, cache, and uploaded media. `docker compose down` keeps
+those volumes; `docker compose down --volumes` intentionally deletes them.
+The web container waits for healthy PostgreSQL and Redis services and exposes
+its own health check. Worker/thread counts are configurable with
+`WEB_CONCURRENCY`, `GUNICORN_THREADS`, and `GUNICORN_TIMEOUT`.
+
+Dependencies are declared in `requirements.in` and resolved to exact versions
+in `requirements.lock`. Runtime, Docker, and CI install only the lock file.
+Regenerate it deliberately with:
+
+```powershell
+python -m pip install "pip-tools==7.5.2"
+python -m piptools compile --output-file=requirements.lock requirements.in
+```
+
+GitHub Actions runs the Django tests against PostgreSQL and Redis on every
+push/PR, then runs a separate production-like `check --deploy` and static
+collection job using non-secret CI-only values. Linux hosts can configure local
+SMTP and Gemini credentials with `scripts/configure_gmail_smtp.sh` and
+`scripts/configure_gemini_key.sh`; the values are written only to `.env`.
+
+Terminate TLS at a trusted reverse proxy and retain the configured forwarded-protocol header. The included checkout is intentionally a demonstration flow with server-side order creation and no external card/payment provider.
+
+The public `/health/` readiness probe checks database and shared-cache access without exposing exception or topology details. Optional Sentry reporting, structured JSON logging, legal contact details, and support email are configured only through environment variables. Authenticated customers can download their account data and submit or cancel an account-deletion request; fulfillment remains an audited operator action so order records are not silently destroyed.
 
 ## Media and archive policy
 

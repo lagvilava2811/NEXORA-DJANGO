@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 
 from .models import (
-    Brand, Category, CompareList, Coupon, EmailVerification, GiftCard, Order, OrderItem, Product,
+    AccountDeletionRequest, Brand, Category, CompareList, Coupon, EmailVerification, GiftCard, Order, OrderItem, Product,
     ProductMedia, ProductRating, ProductSpecificationValue, ProductVariant, ReturnRequest, Review,
     TechnicalSpecification, UserAddress, WarrantyClaim, Wishlist,
 )
@@ -256,6 +256,18 @@ class EmailVerificationAdmin(admin.ModelAdmin):
         return False
 
     def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(AccountDeletionRequest)
+class AccountDeletionRequestAdmin(admin.ModelAdmin):
+    list_display = ("user", "status", "requested_at", "updated_at", "completed_at")
+    list_filter = ("status", "requested_at", "completed_at")
+    search_fields = ("user__username", "user__email")
+    readonly_fields = ("user", "requested_at", "updated_at")
+    list_select_related = ("user",)
+
+    def has_add_permission(self, request):
         return False
 
 

@@ -1,17 +1,41 @@
-{% extends 'base.html' %}{% load static %}
+{% extends 'base.html' %}{% load static humanize %}
 {% block meta_description %}{{ copy.meta_description }}{% endblock %}
 {% block content %}
-<section class="tech-hero hero3d-section" data-hero3d>
+<section
+    class="tech-hero hero3d-section precision-hero"
+    data-hero3d
+    data-home-experience
+    data-gsap-url="{% static 'hero3d/gsap.min.js' %}"
+    data-hero-module-url="{% static 'hero3d/home-hero.js' %}"
+    data-morph-module-url="{% static 'nexora-morph-hero.js' %}"
+>
+    <span class="sr-only" id="premium-audio-copy" data-play="{{ copy.play_ambient }}" data-pause="{{ copy.pause_ambient }}" data-signal="{{ copy.ambient_signal }}" data-volume="{{ copy.ambient_volume }}" data-track="{{ copy.track_part }}" data-ready="{{ copy.audio_ready }}" data-ambient-live="{{ copy.ambient_live }}" data-mic-live="{{ copy.mic_live }}" data-mic-off="{{ copy.mic_off }}" data-mic-stop="{{ copy.stop_microphone }}" data-mic-unavailable="{{ copy.microphone_unavailable }}" data-motion-reduced="{{ copy.motion_reduced }}" data-choose-track="{{ copy.choose_track }}" data-motion="{{ copy.technology_motion }}" data-featured="{{ copy.featured_technology }}"></span>
     <canvas id="hero3d-canvas" aria-hidden="true"></canvas>
-    <aside class="hero3d-player" aria-label="Ambient audio player">
-        <button class="hero3d-mic" type="button" aria-pressed="false" aria-label="Use microphone for live visual reaction">
+    <aside class="hero3d-player" aria-label="{{ copy.ambient_player }}" data-experience-dock>
+        <button class="hero3d-mic" type="button" aria-pressed="false" aria-label="{{ copy.microphone_reaction }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 0 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z"/><path d="M5.5 10.5a6.5 6.5 0 0 0 13 0M12 17v4M8.5 21h7"/></svg>
         </button>
-        <button class="hero3d-launch" type="button" aria-expanded="false" aria-controls="hero3d-audio-panel" aria-label="Open ambient audio player">
+        <div class="hero3d-mic-note" data-mic-note hidden role="dialog" aria-modal="false" aria-labelledby="mic-note-title" aria-describedby="mic-note-description">
+            {% if request.LANGUAGE_CODE == 'ka' %}
+            <strong id="mic-note-title">ხმაზე რეაგირება</strong>
+            <p id="mic-note-description">„ჩართვაზე“ დაჭერის შემდეგ ბრაუზერი მოგთხოვს მიკროფონის ნებართვას. ხმა მუშავდება მხოლოდ ამ ბრაუზერში, NEXORA სცენის რეაქციისთვის — არ იწერება და არ იგზავნება.</p>
+            <div class="hero3d-mic-note-actions"><button type="button" class="hero3d-note-accept" data-mic-enable>ჩართვა</button><button type="button" class="hero3d-note-dismiss" data-mic-dismiss>მოგვიანებით</button></div>
+            {% elif request.LANGUAGE_CODE == 'ru' %}
+            <strong id="mic-note-title">Реакция на голос</strong>
+            <p id="mic-note-description">После нажатия «Включить» браузер запросит доступ к микрофону. Звук обрабатывается только в этом браузере для реакции сцены NEXORA — он не записывается и не отправляется.</p>
+            <div class="hero3d-mic-note-actions"><button type="button" class="hero3d-note-accept" data-mic-enable>Включить</button><button type="button" class="hero3d-note-dismiss" data-mic-dismiss>Позже</button></div>
+            {% else %}
+            <strong id="mic-note-title">Voice reactive mode</strong>
+            <p id="mic-note-description">After you select Enable, your browser will ask for microphone permission. Audio is processed only in this browser for the NEXORA scene reaction — it is not recorded or sent anywhere.</p>
+            <div class="hero3d-mic-note-actions"><button type="button" class="hero3d-note-accept" data-mic-enable>Enable</button><button type="button" class="hero3d-note-dismiss" data-mic-dismiss>Later</button></div>
+            {% endif %}
+        </div>
+        <button class="hero3d-launch" type="button" aria-expanded="false" aria-controls="hero3d-audio-panel" aria-label="{{ copy.open_audio_player }}">
             <span class="hero3d-equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
         </button>
         <div class="hero3d-audio-panel" id="hero3d-audio-panel" hidden>
             <button class="hero3d-play" type="button" aria-pressed="false" aria-label="Play ambient sound">▶</button>
+            <div class="hero3d-player-readout"><span class="hero3d-player-kicker">AMBIENT SIGNAL</span><strong data-track-name>Nordic Ritual</strong><input class="hero3d-volume" type="range" min="0" max="100" value="16" aria-label="Ambient volume"></div>
             <div class="hero3d-tracks" role="group" aria-label="Choose an ambient track">
                 <button class="hero3d-track is-active" type="button" data-track="part01" aria-label="Nordic music part 1">01</button>
                 <button class="hero3d-track" type="button" data-track="part02" aria-label="Nordic music part 2">02</button>
@@ -24,39 +48,81 @@
             <span class="sr-only" data-audio-state aria-live="polite">Ambient audio ready</span>
         </div>
     </aside>
-    <div class="tech-grid" aria-hidden="true"></div>
-    <div class="hero-copy reveal">
-        <p class="eyebrow">{{ copy.brand }} / {{ copy.intro_eyebrow }}</p>
+    <div class="precision-hero-vignette" aria-hidden="true"></div>
+    <div class="hero-copy precision-hero-copy" data-hero3d-copy>
+        <p class="hero-kicker">{{ copy.intro_eyebrow }}</p>
         <h1>{{ copy.hero_title|safe }}</h1>
         <p>{{ copy.hero_subtitle }}</p>
-        <a class="button magnetic" href="{% url 'shop' %}"><span>{{ copy.explore }}</span><i aria-hidden="true">→</i></a>
-        <div class="hero-index"><span>{{ global_products_count }} {{ copy.items_online }}</span><span>{{ copy.scroll_to_explore }}</span></div>
+        <div class="hero-actions"><a class="button magnetic" href="{% url 'shop' %}"><span>{{ copy.explore }}</span><i aria-hidden="true">→</i></a><a class="hero-text-link" href="#catalogue">{{ copy.view_all_products }}</a></div>
     </div>
-    <div class="hero-device reveal">
-        {% if hero_product %}<img src="{{ hero_product.display_image }}" alt="{{ hero_product.localized_name }}" fetchpriority="high" width="900" height="900">{% else %}<img src="{% static 'og-card.svg' %}" alt="NEXORA">{% endif %}
+    <div class="nexora-morph-shell" data-nexora-morph data-model-base="{% static 'nexora-morph/models/' %}" data-error-label="{% if request.LANGUAGE_CODE == 'ka' %}3D მოდელი ვერ ჩაიტვირთა{% elif request.LANGUAGE_CODE == 'ru' %}3D-модель не загрузилась{% else %}3D model unavailable{% endif %}" role="region" aria-label="{% if request.LANGUAGE_CODE == 'ka' %}ინტერაქტიული ტექნოლოგიური ობიექტები{% elif request.LANGUAGE_CODE == 'ru' %}Интерактивные технологические объекты{% else %}Interactive technology objects{% endif %}">
+        <div class="nexora-morph-stage" data-morph-stage tabindex="0" aria-labelledby="morph-name" aria-describedby="morph-instructions">
+            <canvas class="nexora-morph-canvas" data-morph-canvas aria-hidden="true"></canvas>
+            <div class="nexora-morph-label">
+                <span>NEXORA / 360° OBJECT VIEW</span>
+                <strong id="morph-name" data-morph-name>{% if request.LANGUAGE_CODE == 'ka' %}ლეპტოპი{% elif request.LANGUAGE_CODE == 'ru' %}Ноутбук{% else %}Laptop{% endif %}</strong>
+            </div>
+            <span class="nexora-morph-position" data-morph-position aria-hidden="true">01 / 03</span>
+            <p class="nexora-morph-loading" data-morph-loading aria-live="polite">{% if request.LANGUAGE_CODE == 'ka' %}3D მოდელი იტვირთება{% elif request.LANGUAGE_CODE == 'ru' %}Загрузка 3D-модели{% else %}Loading 3D model{% endif %}</p>
+        </div>
+        <div class="nexora-morph-controls" role="group" aria-label="{% if request.LANGUAGE_CODE == 'ka' %}აირჩიე 3D ობიექტი{% elif request.LANGUAGE_CODE == 'ru' %}Выберите 3D-объект{% else %}Choose a 3D object{% endif %}">
+            <button class="nexora-morph-control is-active" type="button" data-morph-select data-model="laptop.glb" data-model-url="{% static 'nexora-morph/models/laptop.glb' %}" data-label="{% if request.LANGUAGE_CODE == 'ka' %}ლეპტოპი{% elif request.LANGUAGE_CODE == 'ru' %}Ноутбук{% else %}Laptop{% endif %}" aria-pressed="true">{% if request.LANGUAGE_CODE == 'ka' %}ლეპტოპი{% elif request.LANGUAGE_CODE == 'ru' %}Ноутбук{% else %}Laptop{% endif %}</button>
+            <button class="nexora-morph-control" type="button" data-morph-select data-model="headphones.glb" data-model-url="{% static 'nexora-morph/models/headphones.glb' %}" data-label="{% if request.LANGUAGE_CODE == 'ka' %}ყურსასმენები{% elif request.LANGUAGE_CODE == 'ru' %}Наушники{% else %}Headphones{% endif %}" aria-pressed="false">{% if request.LANGUAGE_CODE == 'ka' %}აუდიო{% elif request.LANGUAGE_CODE == 'ru' %}Аудио{% else %}Audio{% endif %}</button>
+            <button class="nexora-morph-control" type="button" data-morph-select data-model="camera.glb" data-model-url="{% static 'nexora-morph/models/camera.glb' %}" data-label="{% if request.LANGUAGE_CODE == 'ka' %}კამერა{% elif request.LANGUAGE_CODE == 'ru' %}Камера{% else %}Camera{% endif %}" aria-pressed="false">{% if request.LANGUAGE_CODE == 'ka' %}კამერა{% elif request.LANGUAGE_CODE == 'ru' %}Камера{% else %}Camera{% endif %}</button>
+        </div>
+        <p class="sr-only" id="morph-instructions">{% if request.LANGUAGE_CODE == 'ka' %}ობიექტის დასატრიალებლად გადაათრიე მაჩვენებელი. სხვა მოდელზე გადასასვლელად გამოიყენე ქვედა ღილაკები ან ისრის კლავიშები.{% elif request.LANGUAGE_CODE == 'ru' %}Перетащите указатель, чтобы повернуть объект. Для смены модели используйте кнопки ниже или клавиши со стрелками.{% else %}Drag to rotate the object. Use the controls below or arrow keys to change model.{% endif %}</p>
+        <span class="sr-only" data-morph-status aria-live="polite"></span>
     </div>
 </section>
 
-<section class="tech-video reveal nexora-film" aria-labelledby="motion-title">
-    <video autoplay muted loop playsinline preload="metadata" {% if hero_product %}poster="{{ hero_product.display_image }}"{% endif %}><source src="{% static 'videos/technology-motion.mp4' %}" type="video/mp4"></video>
-    <div class="tech-video-shade" aria-hidden="true"></div>
-    <button class="video-toggle" type="button" aria-pressed="false" data-pause-label="{{ copy.video_pause }}" data-play-label="{{ copy.video_play }}"><span>{{ copy.video_pause }}</span></button>
-    <div class="tech-video-copy"><p class="eyebrow">NEXORA / TECHNOLOGY IN MOTION</p><h2 id="motion-title">{{ copy.drop_title }}</h2><p>{{ copy.hero_subtitle }}</p><a class="button" href="{% url 'shop' %}"><span>{{ copy.explore }}</span><i aria-hidden="true">→</i></a></div>
+<section class="nexora-signal-chamber" aria-labelledby="signal-chamber-title" data-signal-chamber>
+    <div class="nexora-signal-chamber-copy">
+        <h2 id="signal-chamber-title">{% if request.LANGUAGE_CODE == 'ka' %}ტექნიკა, რომელიც შენს რიტმს მიჰყვება.{% elif request.LANGUAGE_CODE == 'ru' %}Техника в вашем ритме.{% else %}Technology, tuned to your rhythm.{% endif %}</h2>
+        <p>{% if request.LANGUAGE_CODE == 'ka' %}არ არის ხმაური, მხოლოდ სწორი მოწყობილობა საჭირო მომენტისთვის. აირჩიე ობიექტი და ნახე მისი რეალური დეტალები.{% elif request.LANGUAGE_CODE == 'ru' %}Без шума — только подходящее устройство для нужного момента. Выберите объект и откройте его реальные детали.{% else %}No noise — just the right object for the moment. Select one to reveal its real catalogue details.{% endif %}</p>
+    </div>
+    <div class="nexora-signal-stage" data-signal-stage>
+        <div class="nexora-signal-light" aria-hidden="true"></div>
+        <div class="nexora-signal-objects">
+            {% for product in products|slice:':3' %}
+            <button type="button" class="nexora-signal-object{% if forloop.first %} is-active{% endif %}" data-signal-object data-signal-target="signal-detail-{{ forloop.counter }}" aria-controls="signal-detail-{{ forloop.counter }}" aria-pressed="{% if forloop.first %}true{% else %}false{% endif %}">
+                <span class="nexora-signal-object-number" aria-hidden="true">0{{ forloop.counter }}</span>
+                <img src="{{ product.display_image }}" alt="{{ product.localized_name }}" loading="lazy" decoding="async" width="680" height="680">
+            </button>
+            {% endfor %}
+        </div>
+        <div class="nexora-signal-details" aria-live="polite">
+            {% for product in products|slice:':3' %}
+            <article class="nexora-signal-detail{% if forloop.first %} is-active{% endif %}" id="signal-detail-{{ forloop.counter }}" data-signal-detail {% if not forloop.first %}hidden{% endif %}>
+                <span>{{ product.brand }} · {{ product.category.localized_name }}</span>
+                <h3>{{ product.localized_name }}</h3>
+                <p>{{ product.short_description|default:product.localized_description|truncatechars:150 }}</p>
+                <dl><div><dt>{% if request.LANGUAGE_CODE == 'ka' %}ფასი{% elif request.LANGUAGE_CODE == 'ru' %}Цена{% else %}Price{% endif %}</dt><dd>{{ product.price|floatformat:0|intcomma }} {{ copy.currency_symbol }}</dd></div><div><dt>{% if request.LANGUAGE_CODE == 'ka' %}სტატუსი{% elif request.LANGUAGE_CODE == 'ru' %}Статус{% else %}Status{% endif %}</dt><dd>{% if product.in_stock %}{{ copy.in_stock }}{% else %}{{ copy.out_of_stock }}{% endif %}</dd></div></dl>
+                <a href="{{ product.get_absolute_url }}">{% if request.LANGUAGE_CODE == 'ka' %}სრული კონფიგურაცია{% elif request.LANGUAGE_CODE == 'ru' %}Полная конфигурация{% else %}Full configuration{% endif %} <span aria-hidden="true">→</span></a>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
 </section>
 
-<section class="launch reveal">
-    <div><p class="eyebrow">NEXORA DROP / 01</p><h2>{{ copy.drop_title }}</h2><p>{{ copy.drop_subtitle }}</p><a class="text-link" href="{% url 'shop' %}?category=laptops">{{ copy.explore_computing }} <i aria-hidden="true">→</i></a></div>
-    <div class="launch-visual"><span>01</span>{% if products.1 %}<img src="{{ products.1.display_image }}" alt="{{ products.1.localized_name }}" loading="lazy" width="900" height="900">{% else %}<img src="{% static 'og-card.svg' %}" alt="NEXORA">{% endif %}</div>
+<section id="catalogue" class="nexora-collector-wall" aria-labelledby="collector-wall-title" data-collector-wall>
+    <div class="nexora-collector-wall-intro">
+        <h2 id="collector-wall-title">{% if request.LANGUAGE_CODE == 'ka' %}შექმენი შენი საკუთარი კოლექცია.{% elif request.LANGUAGE_CODE == 'ru' %}Соберите свою коллекцию.{% else %}Build your own collection.{% endif %}</h2>
+        <a href="{% url 'shop' %}">{{ copy.view_all_products }} <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="nexora-collector-grid">
+        {% for product in products|slice:':12' %}
+        <a class="nexora-collector-tile nexora-collector-tile-{{ forloop.counter }}" href="{{ product.get_absolute_url }}" aria-label="{{ product.localized_name }}">
+            <span class="nexora-collector-tile-count" aria-hidden="true">{{ forloop.counter|stringformat:'02d' }}</span>
+            <img src="{{ product.display_image }}" alt="{{ product.localized_name }}" loading="lazy" decoding="async" width="680" height="680">
+            <span class="nexora-collector-tile-overlay"><strong>{{ product.localized_name }}</strong><small>{{ product.price|floatformat:0|intcomma }} {{ copy.currency_symbol }}</small><em>{% if request.LANGUAGE_CODE == 'ka' %}გახსნა{% elif request.LANGUAGE_CODE == 'ru' %}Открыть{% else %}Open object{% endif %} <i aria-hidden="true">↗</i></em></span>
+        </a>
+        {% empty %}<p>{{ copy.no_results }}</p>{% endfor %}
+    </div>
 </section>
-
-<section class="arrivals reveal" aria-labelledby="arrivals-title">
-    <div class="section-top"><div><p class="eyebrow">{{ copy.trending_now }}</p><h2 id="arrivals-title">{{ copy.picked_for_you }}</h2></div><a class="text-link" href="{% url 'shop' %}">{{ copy.view_all_products }} <i aria-hidden="true">→</i></a></div>
-    <div class="product-grid">{% for product in products %}{% include 'product-card.html' %}{% empty %}<p>{{ copy.no_results }}</p>{% endfor %}</div>
-</section>
-
-<section class="signal reveal"><p class="eyebrow">{{ copy.signal_eyebrow }}</p><h2>{{ copy.signal_title|safe }}</h2><a class="button" href="{% url 'shop' %}"><span>{{ copy.join_signal }}</span><i aria-hidden="true">→</i></a></section>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{% static 'hero3d/gsap.min.js' %}"></script>
-<script type="module" src="{% static 'hero3d/home-hero.js' %}?v=20260714-nordic-audio"></script>
+<link rel="stylesheet" href="{% static 'nexora-morph-hero.css' %}">
+<link rel="stylesheet" href="{% static 'nexora-vault.css' %}">
+<script src="{% static 'home-experience-loader.js' %}" defer></script>
+<script src="{% static 'nexora-vault.js' %}" defer></script>
 {% endblock %}
