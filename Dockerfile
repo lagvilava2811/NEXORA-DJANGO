@@ -24,6 +24,11 @@ RUN python -m pip install --no-index --find-links=/wheels -r requirements.lock &
 
 COPY --chown=nexora:nexora . .
 
+# ``WORKDIR`` is created as root.  Create the generated static destination
+# before dropping privileges so Django's collectstatic command can write it
+# during the image build.
+RUN mkdir -p /app/staticfiles && chown -R nexora:nexora /app
+
 USER nexora
 RUN DJANGO_DEBUG=True \
     DJANGO_SECRET_KEY=docker-build-only-not-used-at-runtime \
