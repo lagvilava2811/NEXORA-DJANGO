@@ -46,7 +46,7 @@ services:
     maxmemoryPolicy: allkeys-lru
 
 databases:
-  - name: nexora-db
+  - name: nexora-demo-db
     plan: free
-    databaseName: nexora
-    user: nexora
+    databaseName: nexora_demo_db
+    user: nexora_demo_db_user
