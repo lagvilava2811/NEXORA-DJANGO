@@ -3,13 +3,9 @@ import sys
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
-
 from django.core.exceptions import ImproperlyConfigured
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-
 
 
 def load_local_env(path):
@@ -27,15 +23,12 @@ def load_local_env(path):
             os.environ.setdefault(key, value.strip().strip("\"'"))
 
 
-
-
 load_local_env(BASE_DIR / ".env")
 TESTING = 'test' in sys.argv
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in {"1", "true", "yes"}
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
 if not SECRET_KEY:
     raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set in the environment")
-
 
 ALLOWED_HOSTS = [value.strip() for value in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",") if value.strip()]
 CSRF_TRUSTED_ORIGINS = [value.strip() for value in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if value.strip()]
@@ -44,7 +37,6 @@ TRUSTED_PROXY_IPS = tuple(
     for value in os.getenv("DJANGO_TRUSTED_PROXY_IPS", "").split(",")
     if value.strip()
 )
-
 
 INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
@@ -79,8 +71,6 @@ TEMPLATES = [{
 WSGI_APPLICATION = "musea.wsgi.application"
 
 
-
-
 def database_from_url(value):
     parsed = urlparse(value)
     if parsed.scheme in {"postgres", "postgresql", "pgsql"}:
@@ -99,15 +89,14 @@ def database_from_url(value):
     raise RuntimeError("DATABASE_URL must use postgresql:// or sqlite://")
 
 
-
-
-# Prefer a standalone deployment URL when a legacy platform binding is stale.
+# NEXORA_DATABASE_URL is intentionally separate from Render's legacy Blueprint
+# binding.  It lets a deployed service be moved to a replacement database
+# without inheriting a stale managed DATABASE_URL value.
 DATABASE_URL = os.getenv("NEXORA_DATABASE_URL") or os.getenv("DATABASE_URL", "")
 DATABASES = {"default": database_from_url(DATABASE_URL) if DATABASE_URL else {
     "ENGINE": "django.db.backends.sqlite3",
     "NAME": BASE_DIR / "db.sqlite3",
 }}
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -121,7 +110,6 @@ USE_I18N = True
 TIME_ZONE = "Asia/Tbilisi"
 USE_TZ = True
 
-
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
@@ -133,3 +121,136 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 FILE_UPLOAD_PERMISSIONS = 0o640
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o750
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+LOGIN_URL = "login"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14
+CSRF_COOKIE_SAMESITE = "Lax"
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+X_FRAME_OPTIONS = "DENY"
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "NEXORA <noreply@nexora.example>")
+NEXORA_LEGAL_NAME = os.getenv("NEXORA_LEGAL_NAME", "").strip()
+NEXORA_LEGAL_ADDRESS = os.getenv("NEXORA_LEGAL_ADDRESS", "").strip()
+NEXORA_SUPPORT_EMAIL = os.getenv("NEXORA_SUPPORT_EMAIL", "").strip()
+NEXORA_PHONE = os.getenv("NEXORA_PHONE", "").strip()
+NEXORA_FACEBOOK_URL = os.getenv("NEXORA_FACEBOOK_URL", "").strip()
+NEXORA_X_URL = os.getenv("NEXORA_X_URL", "").strip()
+NEXORA_INSTAGRAM_URL = os.getenv("NEXORA_INSTAGRAM_URL", "").strip()
+NEXORA_TIKTOK_URL = os.getenv("NEXORA_TIKTOK_URL", "").strip()
+DJANGO_CACHE_URL = os.getenv('DJANGO_CACHE_URL', '').strip()
+if DJANGO_CACHE_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': DJANGO_CACHE_URL,
+        },
+    }
+elif DEBUG or TESTING:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'nexora-local',
+        },
+    }
+else:
+    raise ImproperlyConfigured('DJANGO_CACHE_URL is required when DJANGO_DEBUG=False')
+EMAIL_BACKEND = os.getenv(
+    'DJANGO_EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend',
+)
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in {'1', 'true', 'yes'}
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() in {'1', 'true', 'yes'}
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '10'))
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '').strip()
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash-lite').strip()
+GEMINI_ENABLED = os.getenv('GEMINI_ENABLED', 'False').lower() in {'1', 'true', 'yes'}
+GEMINI_CONNECT_TIMEOUT = float(os.getenv('GEMINI_CONNECT_TIMEOUT', '2'))
+GEMINI_READ_TIMEOUT = float(os.getenv('GEMINI_READ_TIMEOUT', '6'))
+GEMINI_MAX_ATTEMPTS = int(os.getenv('GEMINI_MAX_ATTEMPTS', '2'))
+GEMINI_FAILURE_COOLDOWN_SECONDS = int(os.getenv('GEMINI_FAILURE_COOLDOWN_SECONDS', '20'))
+# The shopping guide can be backed by Gemini or Meta Model API. Credentials
+# stay in local .env / deployment secrets and never belong in source control.
+NEXORA_AI_PROVIDER = os.getenv('NEXORA_AI_PROVIDER', 'gemini').strip().lower()
+META_MODEL_API_KEY = os.getenv('META_MODEL_API_KEY', '').strip()
+META_MODEL = os.getenv('META_MODEL', 'muse-spark-1.1').strip()
+META_MODEL_ENABLED = os.getenv('META_MODEL_ENABLED', 'False').lower() in {'1', 'true', 'yes'}
+META_MODEL_CONNECT_TIMEOUT = float(os.getenv('META_MODEL_CONNECT_TIMEOUT', '2'))
+META_MODEL_READ_TIMEOUT = float(os.getenv('META_MODEL_READ_TIMEOUT', '8'))
+META_MODEL_MAX_ATTEMPTS = int(os.getenv('META_MODEL_MAX_ATTEMPTS', '2'))
+META_MODEL_FAILURE_COOLDOWN_SECONDS = int(os.getenv('META_MODEL_FAILURE_COOLDOWN_SECONDS', '20'))
+EMAIL_VERIFICATION_EXPIRY_SECONDS = int(os.getenv('EMAIL_VERIFICATION_EXPIRY_SECONDS', '600'))
+EMAIL_VERIFICATION_MAX_ATTEMPTS = int(os.getenv('EMAIL_VERIFICATION_MAX_ATTEMPTS', '5'))
+EMAIL_VERIFICATION_RESEND_COOLDOWN = int(os.getenv('EMAIL_VERIFICATION_RESEND_COOLDOWN', '60'))
+EMAIL_VERIFICATION_MAX_SENDS_PER_HOUR = int(os.getenv('EMAIL_VERIFICATION_MAX_SENDS_PER_HOUR', '5'))
+PASSWORD_RESET_CODE_EXPIRY_SECONDS = int(os.getenv('PASSWORD_RESET_CODE_EXPIRY_SECONDS', '600'))
+PASSWORD_RESET_CODE_MAX_ATTEMPTS = int(os.getenv('PASSWORD_RESET_CODE_MAX_ATTEMPTS', '5'))
+PASSWORD_RESET_CODE_RESEND_COOLDOWN = int(os.getenv('PASSWORD_RESET_CODE_RESEND_COOLDOWN', '60'))
+PASSWORD_RESET_CODE_MAX_SENDS_PER_HOUR = int(os.getenv('PASSWORD_RESET_CODE_MAX_SENDS_PER_HOUR', '5'))
+SIGNUP_RATE_LIMIT_PER_IP = int(os.getenv('SIGNUP_RATE_LIMIT_PER_IP', '10'))
+SIGNUP_RATE_LIMIT_PER_EMAIL = int(os.getenv('SIGNUP_RATE_LIMIT_PER_EMAIL', '3'))
+SIGNUP_RATE_LIMIT_WINDOW = int(os.getenv('SIGNUP_RATE_LIMIT_WINDOW', '3600'))
+VERIFICATION_RECOVERY_RATE_LIMIT_PER_IP = int(os.getenv('VERIFICATION_RECOVERY_RATE_LIMIT_PER_IP', '10'))
+VERIFICATION_RECOVERY_RATE_LIMIT_PER_EMAIL = int(os.getenv('VERIFICATION_RECOVERY_RATE_LIMIT_PER_EMAIL', '5'))
+VERIFICATION_RECOVERY_RATE_LIMIT_WINDOW = int(os.getenv('VERIFICATION_RECOVERY_RATE_LIMIT_WINDOW', '3600'))
+LOGIN_RATE_LIMIT_PER_IP = int(os.getenv('LOGIN_RATE_LIMIT_PER_IP', '10'))
+LOGIN_RATE_LIMIT_PER_ACCOUNT = int(os.getenv('LOGIN_RATE_LIMIT_PER_ACCOUNT', '5'))
+LOGIN_RATE_LIMIT_WINDOW = int(os.getenv('LOGIN_RATE_LIMIT_WINDOW', '900'))
+ADMIN_LOGIN_RATE_LIMIT_PER_IP = int(os.getenv('ADMIN_LOGIN_RATE_LIMIT_PER_IP', '10'))
+ADMIN_LOGIN_RATE_LIMIT_PER_ACCOUNT = int(os.getenv('ADMIN_LOGIN_RATE_LIMIT_PER_ACCOUNT', '5'))
+ADMIN_LOGIN_RATE_LIMIT_WINDOW = int(os.getenv('ADMIN_LOGIN_RATE_LIMIT_WINDOW', '900'))
+PASSWORD_RESET_RATE_LIMIT_PER_IP = int(os.getenv('PASSWORD_RESET_RATE_LIMIT_PER_IP', '5'))
+PASSWORD_RESET_RATE_LIMIT_PER_ACCOUNT = int(os.getenv('PASSWORD_RESET_RATE_LIMIT_PER_ACCOUNT', '3'))
+PASSWORD_RESET_RATE_LIMIT_WINDOW = int(os.getenv('PASSWORD_RESET_RATE_LIMIT_WINDOW', '3600'))
+
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise RuntimeError('EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled')
+
+LOG_FORMAT = os.getenv("DJANGO_LOG_FORMAT", "standard" if DEBUG else "json").strip().lower()
+if LOG_FORMAT not in {"standard", "json"}:
+    raise ImproperlyConfigured("DJANGO_LOG_FORMAT must be 'standard' or 'json'")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {"format": "{levelname} {asctime} {name}: {message}", "style": "{"},
+        "json": {"()": "store.logging.JsonFormatter"},
+    },
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": LOG_FORMAT}},
+    "root": {"handlers": ["console"], "level": os.getenv("DJANGO_LOG_LEVEL", "INFO")},
+}
+
+SENTRY_DSN = os.getenv("SENTRY_DSN", "").strip()
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+    except ImportError as exc:
+        raise ImproperlyConfigured("SENTRY_DSN is set but sentry-sdk is not installed") from exc
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
+        release=os.getenv("SENTRY_RELEASE") or None,
+        send_default_pii=False,
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.0")),
+        profiles_sample_rate=float(os.getenv("SENTRY_PROFILES_SAMPLE_RATE", "0.0")),
+    )
