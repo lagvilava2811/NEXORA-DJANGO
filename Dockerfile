@@ -24,15 +24,9 @@ RUN python -m pip install --no-index --find-links=/wheels -r requirements.lock &
 
 COPY --chown=nexora:nexora . .
 
-# ``WORKDIR`` is created as root.  Create the generated static destination
-# before dropping privileges so Django's collectstatic command can write it
-# during the image build.
 RUN mkdir -p /app/staticfiles && chown -R nexora:nexora /app
 
 USER nexora
-# Build the exact same hashed static manifest used at runtime.  Building with
-# DEBUG=True creates only unhashed files, while production templates request
-# manifest-hashed URLs and would otherwise load without CSS or JavaScript.
 RUN DJANGO_DEBUG=False \
     DJANGO_ALLOWED_HOSTS=localhost \
     DJANGO_SECRET_KEY=docker-build-only-not-used-at-runtime \
@@ -45,4 +39,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD python -c "import os, urllib.request; host=os.environ.get('DJANGO_ALLOWED_HOSTS','localhost').split(',')[0].strip() or 'localhost'; request=urllib.request.Request('http://127.0.0.1:'+os.environ.get('PORT','8000')+'/health/', headers={'Host':host,'X-Forwarded-Proto':'https'}); urllib.request.urlopen(request, timeout=4)" || exit 1
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn musea.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-2} --threads ${GUNICORN_THREADS:-4} --timeout ${GUNICORN_TIMEOUT:-60} --access-logfile - --error-logfile -"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py seed_presentation_catalog && exec gunicorn musea.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-2} --threads ${GUNICORN_THREADS:-4} --timeout ${GUNICORN_TIMEOUT:-60} --access-logfile - --error-logfile -"]
