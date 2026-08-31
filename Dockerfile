@@ -30,8 +30,13 @@ COPY --chown=nexora:nexora . .
 RUN mkdir -p /app/staticfiles && chown -R nexora:nexora /app
 
 USER nexora
-RUN DJANGO_DEBUG=True \
+# Build the exact same hashed static manifest used at runtime.  Building with
+# DEBUG=True creates only unhashed files, while production templates request
+# manifest-hashed URLs and would otherwise load without CSS or JavaScript.
+RUN DJANGO_DEBUG=False \
+    DJANGO_ALLOWED_HOSTS=localhost \
     DJANGO_SECRET_KEY=docker-build-only-not-used-at-runtime \
+    ALLOW_INSECURE_EMAIL_FOR_DEMO=True \
     python manage.py collectstatic --noinput
 
 EXPOSE 8000
