@@ -2,7 +2,7 @@
 
 The normal production catalogue lives in object storage. The public Render demo
 uses this smaller set so an empty managed database never produces an empty shop.
-The command is idempotent: it only seeds a database with no products.
+The command is idempotent: it only loads product rows into an empty database.
 """
 
 from __future__ import annotations
@@ -28,10 +28,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        if Product.objects.exists() and not options["force"]:
-            self.stdout.write("Presentation catalogue already present; skipped.")
-            return
-
         fixture = Path(settings.BASE_DIR) / "render_presentation_catalog.json"
         assets_archive = Path(settings.BASE_DIR) / "render_presentation_catalog_media.zip"
         if not fixture.is_file() or not assets_archive.is_file():
@@ -39,6 +35,13 @@ class Command(BaseCommand):
 
         Path(settings.MEDIA_ROOT).mkdir(parents=True, exist_ok=True)
         shutil.unpack_archive(assets_archive, settings.MEDIA_ROOT, format="zip")
+
+        # Render recreates the filesystem on every deploy but preserves the
+        # database. Restore media every time; only load database rows once.
+        if Product.objects.exists() and not options["force"]:
+            self.stdout.write("Presentation catalogue already present; media restored.")
+            return
+
         call_command("loaddata", str(fixture), verbosity=options["verbosity"])
         self.stdout.write(
             self.style.SUCCESS(
