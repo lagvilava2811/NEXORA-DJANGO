@@ -36,6 +36,7 @@ USER nexora
 RUN DJANGO_DEBUG=False \
     DJANGO_ALLOWED_HOSTS=localhost \
     DJANGO_SECRET_KEY=docker-build-only-not-used-at-runtime \
+    DJANGO_CACHE_URL=redis://localhost:6379/0 \
     ALLOW_INSECURE_EMAIL_FOR_DEMO=True \
     python manage.py collectstatic --noinput
 
