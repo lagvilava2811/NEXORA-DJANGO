@@ -12,6 +12,7 @@ media/.wikidata-staging
 .coverage
 *.log
 *.zip
+!render_presentation_catalog_media.zip
 db.sqlite3
 .three-vendor
 three-*.tgz
