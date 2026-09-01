@@ -12,7 +12,7 @@ FORM_TEXT = {
         "full_name": "Full name", "email": "Email", "phone": "Phone", "address": "Delivery address",
         "city": "City", "postal_code": "Postal code", "payment_method": "Payment method", "notes": "Order notes",
         "accept_terms": "I accept the terms and return policy", "cash_on_delivery": "Cash on delivery",
-        "bank_transfer": "Bank transfer", "title": "Title", "address_title": "Address title", "review_title": "Review title", "address_line": "Street address",
+        "bank_transfer": "Bank transfer", "mastercard_demo": "Mastercard · demo", "amex_demo": "American Express · demo", "paypal_demo": "PayPal · demo", "crypto_demo": "Crypto wallet · demo", "title": "Title", "address_title": "Address title", "review_title": "Review title", "address_line": "Street address",
         "is_default": "Use as default address", "coupon_code": "Promotional code", "rating": "Rating",
         "body": "Review", "username": "Username", "first_name": "First name", "last_name": "Last name",
         "password1": "Password", "password2": "Confirm password", "email_in_use": "An account already uses this email address.",
@@ -21,7 +21,7 @@ FORM_TEXT = {
         "full_name": "სრული სახელი", "email": "ელფოსტა", "phone": "ტელეფონი", "address": "მიწოდების მისამართი",
         "city": "ქალაქი", "postal_code": "საფოსტო ინდექსი", "payment_method": "გადახდის მეთოდი", "notes": "შეკვეთის შენიშვნა",
         "accept_terms": "ვეთანხმები პირობებსა და დაბრუნების პოლიტიკას", "cash_on_delivery": "ნაღდი ანგარიშსწორება მიწოდებისას",
-        "bank_transfer": "საბანკო გადარიცხვა", "title": "სათაური", "address_title": "მისამართის დასახელება", "review_title": "შეფასების სათაური", "address_line": "ქუჩისა და სახლის მისამართი",
+        "bank_transfer": "საბანკო გადარიცხვა", "mastercard_demo": "Mastercard · დემო", "amex_demo": "American Express · დემო", "paypal_demo": "PayPal · დემო", "crypto_demo": "კრიპტო საფულე · დემო", "title": "სათაური", "address_title": "მისამართის დასახელება", "review_title": "შეფასების სათაური", "address_line": "ქუჩისა და სახლის მისამართი",
         "is_default": "ნაგულისხმევ მისამართად გამოყენება", "coupon_code": "პრომო კოდი", "rating": "რეიტინგი",
         "body": "შეფასება", "username": "მომხმარებლის სახელი", "first_name": "სახელი", "last_name": "გვარი",
         "password1": "პაროლი", "password2": "გაიმეორე პაროლი", "email_in_use": "ამ ელფოსტით ანგარიში უკვე არსებობს.",
@@ -30,7 +30,7 @@ FORM_TEXT = {
         "full_name": "Полное имя", "email": "Электронная почта", "phone": "Телефон", "address": "Адрес доставки",
         "city": "Город", "postal_code": "Почтовый индекс", "payment_method": "Способ оплаты", "notes": "Комментарий к заказу",
         "accept_terms": "Я принимаю условия и правила возврата", "cash_on_delivery": "Оплата при доставке",
-        "bank_transfer": "Банковский перевод", "title": "Заголовок", "address_title": "Название адреса", "review_title": "Заголовок отзыва", "address_line": "Улица и дом",
+        "bank_transfer": "Банковский перевод", "mastercard_demo": "Mastercard · демо", "amex_demo": "American Express · демо", "paypal_demo": "PayPal · демо", "crypto_demo": "Криптокошелёк · демо", "title": "Заголовок", "address_title": "Название адреса", "review_title": "Заголовок отзыва", "address_line": "Улица и дом",
         "is_default": "Использовать как основной адрес", "coupon_code": "Промокод", "rating": "Рейтинг",
         "body": "Отзыв", "username": "Имя пользователя", "first_name": "Имя", "last_name": "Фамилия",
         "password1": "Пароль", "password2": "Подтвердите пароль", "email_in_use": "Аккаунт с этим адресом электронной почты уже существует.",
@@ -91,6 +91,10 @@ class CheckoutForm(AccessibleFormMixin, forms.Form):
         super().__init__(*args, **kwargs)
         labels = form_text()
         self.fields["payment_method"].choices = (
+            ("mastercard_demo", labels["mastercard_demo"]),
+            ("amex_demo", labels["amex_demo"]),
+            ("paypal_demo", labels["paypal_demo"]),
+            ("crypto_demo", labels["crypto_demo"]),
             ("cash_on_delivery", labels["cash_on_delivery"]),
             ("bank_transfer", labels["bank_transfer"]),
         )

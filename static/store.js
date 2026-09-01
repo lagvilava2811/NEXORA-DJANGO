@@ -420,6 +420,26 @@
         });
     }));
 
+    const paymentRoot = document.querySelector('[data-demo-payment]');
+    const paymentSelect = document.getElementById('id_payment_method');
+    if (paymentRoot && paymentSelect) {
+        const paymentChoices = [...paymentRoot.querySelectorAll('[data-payment-choice]')];
+        const syncPaymentChoice = value => {
+            paymentChoices.forEach(choice => {
+                const selected = choice.dataset.paymentChoice === value;
+                choice.classList.toggle('is-selected', selected);
+                choice.setAttribute('aria-checked', String(selected));
+            });
+        };
+        paymentChoices.forEach(choice => choice.addEventListener('click', () => {
+            paymentSelect.value = choice.dataset.paymentChoice;
+            paymentSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            syncPaymentChoice(paymentSelect.value);
+        }));
+        paymentSelect.addEventListener('change', () => syncPaymentChoice(paymentSelect.value));
+        syncPaymentChoice(paymentSelect.value);
+    }
+
     addEventListener('keydown', event => {
         if (event.key === 'Tab' && drawer?.classList.contains('is-open')) {
             trapFocus(event, drawer);

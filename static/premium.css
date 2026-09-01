@@ -126,6 +126,26 @@ p { max-width: 68ch; }
 
 .button, button.button, .product-card form > button, .pdp-submit-btn, .checkout-btn { min-height: 3rem; border-radius: var(--radius-sm); padding-inline: 1.25rem; box-shadow: none; font-weight: 780; }
 .button:hover, button.button:hover, .product-card form > button:hover, .pdp-submit-btn:hover, .checkout-btn:hover { translate: 0 -2px; box-shadow: 0 .9rem 2rem var(--accent-soft); }
+
+/* Presentation-only checkout methods: no provider SDK, credentials or card data. */
+.demo-payment { display: grid; gap: .8rem; margin: .25rem 0; padding: 1rem; border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: color-mix(in oklch, var(--surface) 88%, var(--accent-soft)); }
+.demo-payment legend { padding: 0 .35rem; color: var(--text-soft); font-size: var(--step--1); font-weight: 760; }
+.demo-payment__notice { margin: 0; color: var(--muted); font-size: .8rem; line-height: 1.45; }
+.demo-payment__choices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; }
+.demo-payment__choice { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .35rem .5rem; min-height: 4.25rem; padding: .65rem; border: 1px solid var(--border-soft); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); text-align: left; cursor: pointer; transition: border-color var(--duration), translate var(--duration), box-shadow var(--duration), background var(--duration); }
+.demo-payment__choice:hover, .demo-payment__choice.is-selected { border-color: var(--accent); background: color-mix(in oklch, var(--accent-soft) 58%, var(--surface)); box-shadow: 0 .65rem 1.6rem var(--accent-soft); translate: 0 -2px; }
+.demo-payment__choice small { grid-column: 2; color: var(--accent); font: 750 .58rem/1 var(--font-mono); letter-spacing: .1em; }
+.payment-mark { display: inline-grid; place-items: center; width: 1.8rem; height: 1.25rem; border-radius: .32rem; color: white; font: 900 .65rem/1 var(--font-mono); }
+.payment-mark--mastercard { position: relative; background: #172033; overflow: hidden; }
+.payment-mark--mastercard i { position: absolute; width: .83rem; height: .83rem; border-radius: 50%; background: #ed1c24; left: .28rem; }
+.payment-mark--mastercard i + i { left: .72rem; background: #f79e1b; mix-blend-mode: screen; }
+.payment-mark--amex { background: #1674b8; letter-spacing: -.12em; }
+.payment-mark--paypal { background: linear-gradient(135deg, #003087, #009cde); font-size: 1rem; font-style: italic; }
+.payment-mark--crypto { background: linear-gradient(135deg, #4d2d87, #e28b20); font-size: 1.2rem; }
+.demo-payment__native { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+.demo-confirmation { display: grid; gap: .22rem; max-width: 38rem; margin-inline: auto; padding: 1rem 1.15rem; border: 1px solid var(--success); border-radius: var(--radius-md); background: color-mix(in oklch, var(--success) 12%, transparent); color: var(--text); text-align: left; }
+.demo-confirmation span { color: var(--text-soft); font-size: var(--step--1); }
+@media (max-width: 42rem) { .demo-payment__choices { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .button:active, button.button:active, .pdp-submit-btn:active { translate: 0 1px; }
 .text-link { align-items: center; font-weight: 760; }
 .text-link i { color: var(--accent); }

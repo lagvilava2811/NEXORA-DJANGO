@@ -341,6 +341,13 @@ def checkout(request):
         except CheckoutError as exc:
             form.add_error(None, str(exc))
         else:
+            # This presentation checkout never contacts a payment provider.  The
+            # explicit demo methods make the mock confirmation visible in the
+            # order record without collecting card, wallet or crypto details.
+            if order.payment_method.endswith("_demo"):
+                order.payment_status = "paid"
+                order.payment_id = f"DEMO-{order.reference}"
+                order.save(update_fields=["payment_status", "payment_id", "updated_at"])
             clear_cart(request.session, request.user)
             request.session.pop("coupon_id", None)
             allowed = request.session.get("order_refs", [])

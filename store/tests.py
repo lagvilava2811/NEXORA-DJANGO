@@ -111,6 +111,19 @@ class StoreJourneyTests(PublishedProductMixin, TestCase):
         self.assertIn("/order/", response.url)
         self.assertEqual(Order.objects.get().items.get().product, self.product)
 
+    def test_demo_payment_is_explicitly_marked_without_gateway_processing(self):
+        self.client.post(reverse("add", args=[self.product.pk]), {"quantity": 1})
+        response = self.client.post(reverse("checkout"), {
+            "full_name": "Nika Example", "email": "nika@example.com", "phone": "+995555123456",
+            "address": "1 Rustaveli Avenue", "city": "Tbilisi", "postal_code": "0108",
+            "payment_method": "paypal_demo", "accept_terms": "on",
+        })
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.get()
+        self.assertEqual(order.payment_method, "paypal_demo")
+        self.assertEqual(order.payment_status, "paid")
+        self.assertTrue(order.payment_id.startswith("DEMO-"))
+
     def test_guide_returns_only_published_match(self):
         response = self.client.post(reverse("guide"), data='{"message":"Nova AMOLED"}', content_type="application/json")
         self.assertEqual(response.status_code, 200)
