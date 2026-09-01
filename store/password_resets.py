@@ -3,12 +3,12 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
-from django.core.mail import send_mail
 from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
 from .models import PasswordResetCode
+from .email_delivery import send_transactional_email
 
 
 class PasswordResetDeliveryError(Exception):
@@ -150,13 +150,11 @@ def issue_password_reset_code(user, language="en", enforce_cooldown=False):
             {"message": message, "language": language},
         )
         try:
-            sent = send_mail(
-                subject,
-                body,
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
-                html_message=html_body,
+            sent = send_transactional_email(
+                subject=subject,
+                text_body=body,
+                html_body=html_body,
+                recipient=user.email,
             )
         except Exception as exc:
             raise PasswordResetDeliveryError from exc

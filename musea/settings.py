@@ -146,7 +146,12 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "NEXORA <noreply@nexora.example>")
+# SMTP providers reject unauthenticated or unverified sender addresses. Keep a
+# useful local default, while production must provide a real verified sender.
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL",
+    "NEXORA <noreply@localhost>" if DEBUG else "",
+).strip()
 NEXORA_LEGAL_NAME = os.getenv("NEXORA_LEGAL_NAME", "").strip()
 NEXORA_LEGAL_ADDRESS = os.getenv("NEXORA_LEGAL_ADDRESS", "").strip()
 NEXORA_SUPPORT_EMAIL = os.getenv("NEXORA_SUPPORT_EMAIL", "").strip()
@@ -176,13 +181,19 @@ EMAIL_BACKEND = os.getenv(
     'DJANGO_EMAIL_BACKEND',
     'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend',
 )
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
+EMAIL_HOST = os.getenv('EMAIL_HOST', '').strip()
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '').strip()
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in {'1', 'true', 'yes'}
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() in {'1', 'true', 'yes'}
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '10'))
+# Render Free blocks SMTP ports.  A transactional HTTP provider (currently
+# Resend) uses HTTPS instead and can therefore deliver production email on the
+# free plan.  SMTP remains available for local development and paid hosts.
+NEXORA_EMAIL_PROVIDER = os.getenv('NEXORA_EMAIL_PROVIDER', 'smtp').strip().lower()
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '').strip()
+RESEND_API_URL = os.getenv('RESEND_API_URL', 'https://api.resend.com/emails').strip()
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '').strip()
 GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash-lite').strip()
 GEMINI_ENABLED = os.getenv('GEMINI_ENABLED', 'False').lower() in {'1', 'true', 'yes'}

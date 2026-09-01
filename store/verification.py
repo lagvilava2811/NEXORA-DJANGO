@@ -4,13 +4,13 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
-from django.core.mail import send_mail
 from django.db import transaction
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
 from .models import EmailVerification
+from .email_delivery import send_transactional_email
 
 
 logger = logging.getLogger(__name__)
@@ -175,13 +175,11 @@ def issue_verification(user, language='en', enforce_cooldown=False, request=None
             },
         )
         try:
-            sent = send_mail(
-                subject,
-                body,
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
-                html_message=html_body,
+            sent = send_transactional_email(
+                subject=subject,
+                text_body=body,
+                html_body=html_body,
+                recipient=user.email,
             )
         except Exception as exc:
             logger.exception("Verification email delivery failed for pending account")

@@ -126,7 +126,7 @@ class EmailVerificationFlowTests(TestCase):
         self.assertEqual(len(mail.outbox), 2)
         self.assertNotEqual(verification.link_token_digest, first_digest)
 
-    @patch("store.verification.send_mail", side_effect=RuntimeError("SMTP down"))
+    @patch("store.verification.send_transactional_email", side_effect=RuntimeError("delivery down"))
     def test_delivery_failure_rolls_back_account_creation(self, _send):
         response = self.signup()
         self.assertEqual(response.status_code, 200)
@@ -236,6 +236,30 @@ class EmailVerificationFlowTests(TestCase):
             },
         }):
             self.assertEqual(production_email_configuration(None), [])
+
+    @override_settings(
+        DEBUG=False,
+        TESTING=False,
+        EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend',
+        EMAIL_HOST='localhost',
+        EMAIL_PORT=25,
+        EMAIL_HOST_USER='smtp-user',
+        EMAIL_HOST_PASSWORD='smtp-password',
+        DEFAULT_FROM_EMAIL='NEXORA <noreply@nexora.example>',
+        CACHES={
+            'default': {
+                'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+                'LOCATION': 'rediss://cache.example:6379/1',
+            },
+        },
+    )
+    def test_production_system_check_rejects_local_smtp_port_25_and_placeholder_sender(self):
+        errors = production_email_configuration(None)
+
+        self.assertEqual(
+            [error.id for error in errors],
+            ['store.E007', 'store.E009', 'store.E010'],
+        )
 
     def test_database_rejects_case_insensitive_duplicate_email(self):
         self.signup()
