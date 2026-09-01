@@ -111,7 +111,36 @@ def _decimal_param(value):
 
 @require_GET
 def home(request):
-    products = Product.objects.storefront().order_by("-is_featured", "-rating", "name")[:12]
+    # Keep the homepage object chamber deliberately art-directed.  It should
+    # introduce three clearly different product worlds instead of inheriting
+    # whatever happens to sort first in the catalogue (which previously made
+    # a low-quality earbud source image a prominent homepage visual).
+    home_object_slugs = (
+        "iphone-15-pro",
+        "asus-rog-zephyrus-g14",
+        "sony-alpha-7-iv",
+    )
+    published_products = Product.objects.storefront()
+    products_by_slug = {
+        product.slug: product
+        for product in published_products.filter(slug__in=home_object_slugs)
+    }
+    products = [
+        products_by_slug[slug]
+        for slug in home_object_slugs
+        if slug in products_by_slug
+    ]
+
+    # The presentation data can be seeded partially while a deployment is
+    # starting. Keep the chamber complete without ever duplicating a product.
+    if len(products) < 3:
+        selected_ids = {product.pk for product in products}
+        products.extend(
+            product
+            for product in published_products.order_by("-is_featured", "-rating", "name")
+            if product.pk not in selected_ids
+        )
+    products = products[:3]
     hero_product = (
         Product.objects.storefront()
         .filter(slug="asus-rog-zephyrus-g14")
