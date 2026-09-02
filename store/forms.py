@@ -229,9 +229,20 @@ class PasswordResetRequestForm(AccessibleFormMixin, forms.Form):
 
 
 class PasswordResetCodeForm(VerificationCodeForm):
+    # A reset code is proof of access to the mailbox. Keeping the address on
+    # this screen lets a user finish the recovery flow after switching device
+    # or losing the browser session that requested the code.
+    email = forms.EmailField(required=False, max_length=254)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['email'].label = 'Email address'
+        self.fields['email'].widget.attrs['autocomplete'] = 'email'
         self.fields['code'].widget.attrs['class'] = 'reset-code-input'
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        return normalize_email(email) if email else ''
 
 
 class PasswordResetSetPasswordForm(AccessibleFormMixin, SetPasswordForm):

@@ -498,10 +498,23 @@ def _password_reset_record(request, *, verified=False):
 @require_http_methods(["GET", "POST"])
 def password_reset_code_view(request):
     text = localized_password_reset_text(get_language())
-    form = PasswordResetCodeForm(request.POST or None)
     record = _password_reset_record(request)
+    form = PasswordResetCodeForm(
+        request.POST or None,
+        initial={"email": record.user.email if record is not None else ""},
+    )
 
     if request.method == "POST" and form.is_valid():
+        # The original request is kept in the session when possible.  If the
+        # user opens the email on another device, the optional email field
+        # identifies the matching, still-pending reset record instead.
+        if record is None and form.cleaned_data.get("email"):
+            record = PasswordResetCode.objects.select_related("user").filter(
+                user__email__iexact=form.cleaned_data["email"],
+                user__is_active=True,
+                used_at__isnull=True,
+                pending_reset_at__isnull=False,
+            ).first()
         if record is None:
             form.add_error("code", text["invalid"])
         else:

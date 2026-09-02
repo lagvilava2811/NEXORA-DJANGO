@@ -106,6 +106,19 @@ class PasswordResetCodeFlowTests(TestCase):
         self.assertContains(replay, "invalid", status_code=200)
         self.assertNotIn("password_reset_verified_record_id", self.client.session)
 
+    def test_code_can_be_verified_from_a_new_browser_session_with_email(self):
+        self._request_code()
+        code = self._extract_code()
+
+        # A user may request on a phone and enter the emailed code on a laptop.
+        other_browser = self.client_class()
+        verify = other_browser.post(
+            reverse("password_reset_done"),
+            {"email": self.user.email, "code": code},
+        )
+
+        self.assertRedirects(verify, reverse("password_reset_confirm"))
+
     def test_expired_and_locked_codes_are_rejected(self):
         self._request_code()
         record = PasswordResetCode.objects.get(user=self.user)
