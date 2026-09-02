@@ -55,6 +55,13 @@ class AuthenticationHardeningTests(TestCase):
         response = fresh_client.post(reverse("login"), {"username": self.user.username, "password": "wrong-password"})
         self.assertContains(response, "Too many sign-in attempts")
 
+    def test_login_accepts_the_account_email(self):
+        response = self.client.post(
+            reverse("login"),
+            {"username": self.user.email, "password": "A-test-password-2026!"},
+        )
+        self.assertRedirects(response, reverse("cabinet"))
+
     @override_settings(ADMIN_LOGIN_RATE_LIMIT_PER_IP=1, ADMIN_LOGIN_RATE_LIMIT_PER_ACCOUNT=5, ADMIN_LOGIN_RATE_LIMIT_WINDOW=900)
     def test_admin_login_is_throttled_by_shared_cache(self):
         self.client.post("/admin/login/", {"username": self.user.username, "password": "wrong-password"})

@@ -415,8 +415,21 @@ def order_success(request, reference):
 def login_view(request):
     if request.user.is_authenticated:
         return redirect("cabinet")
-    form = AuthenticationForm(request, data=request.POST or None)
+    login_data = request.POST or None
+    # Django's stock AuthenticationForm only accepts a username.  NEXORA
+    # accounts already require a unique email, so resolve it here before
+    # authentication and let customers sign in with either identifier.
+    submitted_identity = request.POST.get("username", "").strip() if request.method == "POST" else ""
+    if submitted_identity and "@" in submitted_identity:
+        matched_user = get_user_model().objects.filter(email__iexact=submitted_identity).only("username").first()
+        if matched_user is not None:
+            login_data = request.POST.copy()
+            login_data["username"] = matched_user.username
+
+    form = AuthenticationForm(request, data=login_data)
     for name, field in form.fields.items():
+        if name == "username":
+            field.label = "Username or email"
         field.widget.attrs.update(
             {
                 "id": f"id_{name}",
@@ -428,7 +441,7 @@ def login_view(request):
         if login_rate_limited(
             request,
             "login",
-            request.POST.get("username", ""),
+            submitted_identity,
             ip_limit=getattr(settings, "LOGIN_RATE_LIMIT_PER_IP", 10),
             account_limit=getattr(settings, "LOGIN_RATE_LIMIT_PER_ACCOUNT", 5),
             window_seconds=getattr(settings, "LOGIN_RATE_LIMIT_WINDOW", 900),
