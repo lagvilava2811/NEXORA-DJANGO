@@ -129,7 +129,7 @@ class CouponForm(AccessibleFormMixin, forms.Form):
 class ReviewForm(AccessibleFormMixin, forms.ModelForm):
     class Meta:
         model = Review
-        fields = ("rating", "title", "body")
+        fields = ("title", "body")
         widgets = {"body": forms.Textarea(attrs={"rows": 5, "maxlength": 3000})}
 
     def __init__(self, *args, **kwargs):

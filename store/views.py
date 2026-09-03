@@ -1005,6 +1005,12 @@ def add_review(request, slug):
     product_item = get_object_or_404(Product.objects.published(), slug=slug)
     form = ReviewForm(request.POST)
     if form.is_valid():
+        rating = ProductRating.objects.filter(
+            product=product_item, user=request.user
+        ).values_list("rating", flat=True).first()
+        if rating is None:
+            form.add_error(None, _localized_copy("review_requires_rating"))
+            return render(request, "product.html", _product_context(request, product_item, form), status=400)
         verified = OrderItem.objects.filter(
             order__user=request.user,
             order__status__in=("confirmed", "processing", "shipped", "delivered"),
@@ -1014,7 +1020,7 @@ def add_review(request, slug):
             user=request.user,
             product=product_item,
             # Presentation catalogue: authenticated reviews publish immediately.
-            defaults={**form.cleaned_data, "is_verified_purchase": verified, "is_approved": True},
+            defaults={**form.cleaned_data, "rating": rating, "is_verified_purchase": verified, "is_approved": True},
         )
         messages.success(request, _localized_copy("review_submitted"))
         return redirect("product", slug=slug)

@@ -518,9 +518,9 @@ A11Y_COPIES = {
 for language, values in A11Y_COPIES.items():
     COPIES[language].update(values)
 REVIEW_COPIES = {
-    "en": {"review_submitted": "Your review is now live.", "review_error": "Please correct the review fields."},
-    "ka": {"review_submitted": "შეფასება შენახულია და უკვე ჩანს გვერდზე.", "review_error": "გთხოვ, გაასწორო შეფასების მონიშნული ველები."},
-    "ru": {"review_submitted": "Ваш отзыв сохранён и уже опубликован.", "review_error": "Исправьте отмеченные поля отзыва."},
+    "en": {"review_submitted": "Your review is now live.", "review_error": "Please correct the review fields.", "review_requires_rating": "Choose your star rating above before posting a review."},
+    "ka": {"review_submitted": "შეფასება შენახულია და უკვე ჩანს გვერდზე.", "review_error": "გთხოვ, გაასწორო შეფასების მონიშნული ველები.", "review_requires_rating": "კომენტარის გაგზავნამდე ზემოთ აირჩიე ვარსკვლავებით შეფასება."},
+    "ru": {"review_submitted": "Ваш отзыв сохранён и уже опубликован.", "review_error": "Исправьте отмеченные поля отзыва.", "review_requires_rating": "Перед публикацией отзыва выберите оценку звёздами выше."},
 }
 for language, values in REVIEW_COPIES.items():
     COPIES[language].update(values)
