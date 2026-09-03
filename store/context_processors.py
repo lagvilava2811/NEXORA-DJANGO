@@ -512,9 +512,9 @@ A11Y_COPIES = {
 for language, values in A11Y_COPIES.items():
     COPIES[language].update(values)
 REVIEW_COPIES = {
-    "en": {"review_submitted": "Your review was submitted for moderation.", "review_error": "Please correct the review fields."},
-    "ka": {"review_submitted": "შეფასება მოდერაციაზე გაიგზავნა.", "review_error": "გთხოვ, გაასწორო შეფასების მონიშნული ველები."},
-    "ru": {"review_submitted": "Отзыв отправлен на модерацию.", "review_error": "Исправьте отмеченные поля отзыва."},
+    "en": {"review_submitted": "Your review is now live.", "review_error": "Please correct the review fields."},
+    "ka": {"review_submitted": "შეფასება შენახულია და უკვე ჩანს გვერდზე.", "review_error": "გთხოვ, გაასწორო შეფასების მონიშნული ველები."},
+    "ru": {"review_submitted": "Ваш отзыв сохранён и уже опубликован.", "review_error": "Исправьте отмеченные поля отзыва."},
 }
 for language, values in REVIEW_COPIES.items():
     COPIES[language].update(values)

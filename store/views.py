@@ -997,7 +997,8 @@ def add_review(request, slug):
         Review.objects.update_or_create(
             user=request.user,
             product=product_item,
-            defaults={**form.cleaned_data, "is_verified_purchase": verified, "is_approved": False},
+            # Presentation catalogue: authenticated reviews publish immediately.
+            defaults={**form.cleaned_data, "is_verified_purchase": verified, "is_approved": True},
         )
         messages.success(request, _localized_copy("review_submitted"))
         return redirect("product", slug=slug)

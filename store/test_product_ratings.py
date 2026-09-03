@@ -221,7 +221,11 @@ class ProductRatingTests(TestCase):
         self.assertEqual(ProductRating.objects.get(product=self.product, user=self.user).rating, 3)
         self.product.refresh_from_db()
         self.assertEqual(self.product.rating_count, 1)
-        self.assertEqual(self.product.review_count, 0)
+        self.assertEqual(self.product.review_count, 1)
+        review = Review.objects.get(product=self.product, user=self.user)
+        self.assertTrue(review.is_approved)
+        page = self.client.get(reverse('product', kwargs={'slug': self.product.slug}))
+        self.assertContains(page, 'A useful review.')
 
     def test_repair_command_restores_all_rating_and_review_caches(self):
         ProductRating.objects.create(product=self.product, user=self.user, rating=5)
