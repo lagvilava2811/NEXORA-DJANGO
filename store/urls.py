@@ -10,6 +10,7 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("shop/", views.shop, name="shop"),
     path("product/<str:slug>/", views.product, name="product"),
+    path("product/<str:slug>/reviews/", views.product_reviews, name="product_reviews"),
     path("bag/", views.bag, name="bag"),
     path("bag/add/<int:id>/", views.add, name="add"),
     path("bag/update/<int:id>/", views.update, name="update"),

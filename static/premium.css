@@ -536,4 +536,8 @@ input, textarea, select { border-radius: var(--radius-sm); background: var(--bg-
 .legal-sections h2,.legal-contact h2{margin-top:0;font-size:var(--step-1)}
 .legal-sections p,.legal-contact p{color:var(--text-muted);line-height:1.75}
 .cabinet-privacy .button{width:auto;margin-block:.75rem}
+.review-archive-link{width:auto;white-space:nowrap}
+.reviews-archive{max-width:76rem;margin-inline:auto}.reviews-archive-count{margin:.5rem 0 0;color:var(--text-muted)}
+.product-rating-card{position:relative;overflow:hidden}.product-rating-card::after{position:absolute;inset:auto -8% -120% auto;width:23rem;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,color-mix(in oklch,var(--accent) 34%,transparent),transparent 68%);content:"";pointer-events:none}.product-rating-form,.product-rating-copy{position:relative;z-index:1}.star-rating-input{padding:.3rem .45rem;border:1px solid color-mix(in oklch,var(--accent) 32%,var(--border));border-radius:999px;background:color-mix(in oklch,var(--surface-2) 78%,transparent);width:max-content}.review-area{padding-top:clamp(2rem,5vw,4rem)}.review-area .review-form{max-width:48rem;margin-top:1.5rem;padding:clamp(1rem,3vw,1.5rem);border:1px solid var(--border-soft);border-radius:var(--radius-lg);background:var(--surface)}.review-area .review-item{transition:border-color .2s ease,transform .2s ease}.review-area .review-item:hover{border-color:color-mix(in oklch,var(--accent) 52%,var(--border));transform:translateY(-2px)}
+@media(max-width:42rem){.related-section-header:has(.review-archive-link){align-items:flex-start;flex-direction:column}.review-archive-link{width:100%;text-align:center}}
 @media(max-width:48rem){.legal-sections{grid-template-columns:1fr}}

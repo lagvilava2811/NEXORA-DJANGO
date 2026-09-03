@@ -269,6 +269,7 @@ def _product_context(request, product_item, review_form=None):
     user_rating = None
     if request.user.is_authenticated:
         user_rating = product_item.ratings.filter(user=request.user).values_list('rating', flat=True).first()
+    reviews = product_item.reviews.filter(is_approved=True).select_related("user").order_by("-created_at")
     return {
         'rating_average': rating_average,
         'rating_count': rating_count,
@@ -277,7 +278,8 @@ def _product_context(request, product_item, review_form=None):
         "product": product_item,
         "related": Product.objects.storefront().filter(category=product_item.category).exclude(pk=product_item.pk).order_by("-rating")[:4],
         "gallery": product_item.gallery_images,
-        "reviews": product_item.reviews.filter(is_approved=True).select_related("user").order_by("-created_at")[:10],
+        "reviews": reviews[:3],
+        "review_total": reviews.count(),
         "review_form": review_form or ReviewForm(),
         "is_wishlisted": request.user.is_authenticated and Wishlist.objects.filter(user=request.user, product=product_item).exists(),
     }
@@ -287,6 +289,20 @@ def _product_context(request, product_item, review_form=None):
 def product(request, slug):
     product_item = get_object_or_404(Product.objects.storefront(), slug=slug)
     return render(request, "product.html", _product_context(request, product_item))
+
+
+@require_GET
+def product_reviews(request, slug):
+    """Show the complete, paginated review archive for one product."""
+    product_item = get_object_or_404(Product.objects.storefront(), slug=slug)
+    reviews = product_item.reviews.filter(is_approved=True).select_related("user").order_by("-created_at")
+    paginator = Paginator(reviews, 12)
+    page = paginator.get_page(request.GET.get("page"))
+    return render(request, "product-reviews.html", {
+        "product": product_item, "reviews": page, "review_total": paginator.count,
+        "page": page,
+        "page_range": paginator.get_elided_page_range(page.number, on_each_side=2, on_ends=2),
+    })
 
 
 def _requested_variant(product_item, value):

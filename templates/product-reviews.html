@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}{{ copy.reviews_and_ratings }} | {{ product.localized_name }} | NEXORA{% endblock %}
+{% block content %}
+<nav class="breadcrumb-trail" aria-label="{{ copy.breadcrumb }}"><a href="{% url 'home' %}">NEXORA</a> / <a href="{% url 'product' product.slug %}">{{ product.localized_name }}</a> / <span aria-current="page">{{ copy.reviews_and_ratings }}</span></nav>
+<section class="related-products-section reviews-archive" aria-labelledby="reviews-title">
+    <div class="related-section-header"><div><p class="eyebrow">{{ product.localized_name }}</p><h1 id="reviews-title">{{ copy.reviews_and_ratings }}</h1><p class="reviews-archive-count">{{ review_total }} {{ copy.reviews }}</p></div><a class="button review-archive-link" href="{% url 'product' product.slug %}">← {{ copy.back_to_product }}</a></div>
+    <div class="reviews-list">{% for review in reviews %}<article class="review-item"><div class="review-meta"><span>★ {{ review.rating }} {% if review.is_verified_purchase %}<span class="verified-tag">{{ copy.verified_purchase }}</span>{% endif %}</span><time datetime="{{ review.created_at|date:'c' }}">{{ review.created_at|date:'Y-m-d' }}</time></div>{% if review.title %}<h2 class="review-title">{{ review.title }}</h2>{% endif %}<p class="review-body">{{ review.body }}</p></article>{% empty %}<p>{{ copy.no_reviews }}</p>{% endfor %}</div>
+    {% include 'store/pagination.html' with page=page page_range=page_range %}
+</section>
+{% endblock %}
